@@ -18,7 +18,7 @@ def timer(function):
         logging.info('{}, started at {}'.format(function.__name__, start))
         result = function(*args, **kwargs)
         end = datetime.now()
-        logging.info('{}, ended at {}. Run for {} seconds'.format(function.__name__, start, end - start))
+        logging.info('{}, ended at {}. Last for {} seconds'.format(function.__name__, start, end - start))
         return result
 
     return wrapper
