@@ -10,6 +10,7 @@
 | Database          | Permission        | Collections        | Environment Name           |
 | ----------------- |:----------------: | ------------------ | ---------------------------|
 | <db_name>         | <permission_type> | <collection_name>  | <env_variable_name>        |
+| <db_name>         |      (r/w)        | <collection_name>  | <env_variable_name>        |
 
 ### Optional Environment Variables
 Ex:

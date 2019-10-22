@@ -20,5 +20,4 @@ def timer(function):
         end = datetime.now()
         logging.info('{}, ended at {}. Last for {} seconds'.format(function.__name__, start, end - start))
         return result
-
     return wrapper
