@@ -1,7 +1,7 @@
 # cron_template
 ## Cron Information
 
-* Frequency: (Daily | Weekly | Hourly etc.)
+* Frequency: (Daily | Hourly etc.)
 * Parameters: <parameter_name>:<parameter_format> (Ex: start_date:yyyy-mm-dd)
 * Description: <short_description>
 
@@ -11,6 +11,7 @@
 | ----------------- |:----------------: | ------------------ | ---------------------------|
 | <db_name>         | <permission_type> | <collection_name>  | <env_variable_name>        |
 | <db_name>         |      (r/w)        | <collection_name>  | <env_variable_name>        |
+| MAIN_DB           |         r         | orders, clients    |          MAIN_DB           |
 
 ### Optional Environment Variables
 Ex:

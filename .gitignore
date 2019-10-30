@@ -1,9 +1,8 @@
 .idea/
-.src/local_cache
-.csv
-.xlsx
-.xls
-.pickle
-.mp4
-.jpeg
-.png
+*.csv
+*.xlsx
+*.xls
+*.pickle
+*.mp4
+*.jpeg
+*.png

@@ -1,5 +1,5 @@
 import time
-from utils import cache, timer
+from src.utils import cache, timer
 
 
 class DataAccess:

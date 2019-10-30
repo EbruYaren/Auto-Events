@@ -12,9 +12,9 @@ import os
 def cache(func):
     def wrapper(self, *args, **kwargs):
         __hash_name__ = func.__name__ + str(kwargs) + str(args)
-        if __hash_name__ not in self.func_table.keys():
-            self.func_table[__hash_name__] = func(self, *args, **kwargs)
-        return self.func_table[__hash_name__]
+        if __hash_name__ not in self.func_dict.keys():
+            self.func_dict[__hash_name__] = func(self, *args, **kwargs)
+        return self.func_dict[__hash_name__]
 
     return wrapper
 
@@ -59,7 +59,7 @@ def read_query(file_path: str, skip_line_count=0):
         raise Exception('{} is not found'.format(file_path))
     return ' '.join(con_str[skip_line_count:])
 
-
+@timer
 def get_run_dates(interval=timedelta(hours=24)):
     total_seconds = interval.total_seconds()
     now = get_local_current_time()
@@ -68,7 +68,7 @@ def get_run_dates(interval=timedelta(hours=24)):
     a_minute_in_seconds = 60
     dates = []
     start = None
-    if len(sys.argv) >= 1:
+    if len(sys.argv[1:]) >= 1:
         try:
             start = datetime.strptime(sys.argv[1], '%Y-%m-%d')
             try:
@@ -111,7 +111,7 @@ def get_run_dates(interval=timedelta(hours=24)):
     return dates
 
 
-def upload_to_s3(local_file, bucket, s3_file, s3_access_key=config.S3_ACCESS_KEY, s3_secret_key=config.S3_SECRET_KEY):
+def upload_to_s3(local_file, bucket, s3_file, s3_access_key, s3_secret_key):
     s3 = boto3.client('s3', aws_access_key_id=s3_access_key,
                       aws_secret_access_key=s3_secret_key)
 
@@ -128,7 +128,7 @@ def upload_to_s3(local_file, bucket, s3_file, s3_access_key=config.S3_ACCESS_KEY
 
 
 def upsert_redshift(df, target, unique_id, engine, s3_bucket_name, s3_region,
-                    s3_access_key=config.S3_ACCESS_KEY, s3_secret_key=config.S3_SECRET_KEY, ):
+                    s3_access_key, s3_secret_key):
     """
 
     :param df:
