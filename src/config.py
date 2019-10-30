@@ -6,3 +6,7 @@
 
 # ADDITIONAL VARIABLES
 # SLACK_HOOK_URL = os.environ.get(SLACK_HOOK, '<test_channel_hook>')
+# S3_ACCESS_KEY = '<access_key>'
+# S3_SECRET_KEY = '<secret_key>'
+# S3_REGION = '<region>'
+# S3_BUCKET_NAME = '<bucket_name>'
