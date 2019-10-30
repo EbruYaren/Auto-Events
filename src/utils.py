@@ -5,7 +5,7 @@ from datetime import timedelta
 import sys
 import boto3
 from botocore.exceptions import NoCredentialsError
-import config
+from src import config
 import os
 
 
