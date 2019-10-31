@@ -59,6 +59,7 @@ def read_query(file_path: str, skip_line_count=0):
         raise Exception('{} is not found'.format(file_path))
     return ' '.join(con_str[skip_line_count:])
 
+
 @timer
 def get_run_dates(interval=timedelta(hours=24)):
     total_seconds = interval.total_seconds()

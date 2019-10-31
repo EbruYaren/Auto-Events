@@ -1,28 +1,18 @@
-from src.functions import example_func_sleep
-from src.utils import get_run_dates
+import src.functions as functions
+from src.functions import daily_analytics
+from src.utils import get_run_dates, timer
 from datetime import timedelta
-from src.data_access import DataAccess
+import src.data_access as data_access
 
 
+@timer
 def main():
-    example_func_sleep(1, y=2)
+    run_dates = get_run_dates()
 
-    # example_func_sleep(1, 3)
-
-    # print(get_run_dates())
-
-    # print(get_run_dates(timedelta(hours=8)))
-
-    # print(get_run_dates(timedelta(hours=2)))
-
-    # print(get_run_dates(timedelta(minutes=12)))
-
-    #data_access = DataAccess()
-    #print(data_access.get_data(1, 2))
-#
-    #print(data_access.get_data(1, 2))
-#
-    #print()
+    for start, end in zip(run_dates, run_dates[1:]):
+        commertial_df = daily_analytics(start, end)
+        print('bitti')
 
 
-main()
+if __name__ == '__main__':
+    main()
