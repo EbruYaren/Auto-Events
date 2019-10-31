@@ -1,14 +1,6 @@
-import os
-from sqlalchemy import create_engine
-from pymongo import MongoClient
-
+# import os
 # DB CONNECTION URI
-MARKET_ORDER_REDSHIFT = create_engine(os.environ.get('G30_REDSHIFT'))
-MONGO_GETIREVENTS_LIVE = MongoClient(os.environ.get('MONGO_GETIREVENTS_LIVE')).get_database()
-REDSHIFT_MARKET_ANALYTICS_LIVE = create_engine(os.environ.get('REDSHIFT_MARKET_ANALYTICS_LIVE'))
-MONGO_MARKET_ANALYSIS_LIVE = MongoClient(os.environ.get('MONGO_MARKET_ANALYSIS_LIVE')).get_database()
-
-
+# ANALYSIS_DB_URI = os.environ.get('ANALYSIS_DB_URI', '<ANALYSIS_DEV_URI>')
 # MAIN_DB_URI = os.environ.get('MAIN_DB_URI', '<MAIN_DB_DEV_URI>')
 # LOG_DB_URI = os.environ.get('MAIN_DB_URI', '<_LOG_DB_DEV_URI>')
 
