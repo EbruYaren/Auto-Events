@@ -43,6 +43,7 @@ def timer(function):
 
     return wrapper
 
+
 def get_local_time(utc_time, timezone='Europe/Istanbul'):
     local_tz = tz.gettz(timezone)
     local_offset = local_tz.utcoffset(utc_time)
@@ -65,6 +66,7 @@ def read_query(file_path: str, skip_line_count=0):
     return ' '.join(con_str[skip_line_count:])
 
 @timer
+
 def get_run_dates(interval=timedelta(hours=24)):
     total_seconds = interval.total_seconds()
     now = get_local_current_time()
@@ -73,13 +75,10 @@ def get_run_dates(interval=timedelta(hours=24)):
     a_minute_in_seconds = 60
     dates = []
     start = None
-    if len(sys.argv[1:]) >= 1:
+    if len(sys.argv) == 3:
         try:
             start = datetime.strptime(sys.argv[1], '%Y-%m-%d')
-            try:
-                now = datetime.strptime(sys.argv[2], '%Y-%m-%d')
-            except:
-                pass
+            now = datetime.strptime(sys.argv[2], '%Y-%m-%d')
         except:
             logging.warning('Arguements {} are not convertible to datetime'.format(sys.argv))
 
@@ -112,8 +111,9 @@ def get_run_dates(interval=timedelta(hours=24)):
     while end >= start:
         dates.append(start)
         start += interval
-    logging.info("Start date: {}, end date: {}, time interval: {} ".format(dates[0], dates[-1], interval))
+    logging.info("Start date: {}, end date: {}, time interval: {} ".format(dates[0], dates[-1], interval) )
     return dates
+
 
 
 def upload_to_s3(local_file, bucket, s3_file, s3_access_key, s3_secret_key):
