@@ -1,21 +1,23 @@
 # cron_template
 ## Cron Information
 
-* Frequency: Daily
-* Parameters: Ex: 2019-10-30 2019-10-31
-* Description: Calculates daily Getir Buyuk metrics
+* Frequency: (Daily | Hourly etc.)
+* Parameters: <parameter_name>:<parameter_format> (Ex: start_date:yyyy-mm-dd)
+* Description: <short_description>
 
 ### Databases & Environment Variables
 
-| Database                               | Permission        | Collections                                                      | Environment Name              |
-| -----------------                      |:----------------: | ------------------                                               | ------------------------------|
-| G30_REDSHIFT                           |      read         | <collection_name>                                                | G30_REDSHIFT                  |
-| MONGO_GETIREVENTS_LIVE                 |      read         | <collection_name>                                                | MONGO_GETIREVENTS_LIVE        |
-| REDSHIFT_MARKET_ANALYTICS_LIVE         |      write        | daily_stats, missed_orders, order_details                        | REDSHIFT_MARKET_ANALYTICS_LIVE|
-| MONGO_MARKET_ANALYSIS_LIVE             |      write        | marketdailysummaries                                             |
+| Database          | Permission        | Collections        | Environment Name           |
+| ----------------- |:----------------: | ------------------ | ---------------------------|
+| <db_name>         | <permission_type> | <collection_name>  | <env_variable_name>        |
+| <db_name>         |      (r/w)        | <collection_name>  | <env_variable_name>        |
+| MAIN_DB           |         r         | orders, clients    |          MAIN_DB           |
 
 ### Optional Environment Variables
-There are no optional environment variables.
+Ex:
+* <api_token_name>
+* <slack_hook_url>
+* <run_environment>
 
 
 
