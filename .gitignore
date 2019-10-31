@@ -6,3 +6,4 @@
 *.mp4
 *.jpeg
 *.png
+src/__pycache__/
