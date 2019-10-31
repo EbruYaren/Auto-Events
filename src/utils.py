@@ -7,6 +7,7 @@ import boto3
 from botocore.exceptions import NoCredentialsError
 from src import config
 import os
+from time import process_time
 
 
 def cache(func):
@@ -27,16 +28,20 @@ def get_local_current_time(tz_name='Europe/Istanbul'):
 def timer(function):
     def wrapper(*args, **kwargs):
         start = get_local_current_time()
+        process_start = process_time()
         print('Function {}, started at {} with parameters args: {}, kwargs: {}'
               .format(function.__name__, start, args, kwargs))
         result = function(*args, **kwargs)
+        process_end = process_time()
         end = get_local_current_time()
-        print('Function {}, ended at {} and ran for {} seconds.'
-              .format(function.__name__, end, (end - start).seconds))
+        total_time = (end-start).seconds
+        cpu_time = round(process_end-process_start, 2)
+        io_time = total_time-cpu_time
+        print('Function {}, ended at {}. TOTAL TIME: {}, CPU TIME: {}, IO TIME: {} seconds.'
+              .format(function.__name__, end, total_time, cpu_time, io_time))
         return result
 
     return wrapper
-
 
 def get_local_time(utc_time, timezone='Europe/Istanbul'):
     local_tz = tz.gettz(timezone)
