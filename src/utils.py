@@ -8,6 +8,7 @@ from botocore.exceptions import NoCredentialsError
 from src import config
 import os
 from time import process_time
+import argparse
 
 
 def cache(func):
@@ -66,8 +67,13 @@ def read_query(file_path: str, skip_line_count=0):
     return ' '.join(con_str[skip_line_count:])
 
 @timer
-
 def get_run_dates(interval=timedelta(hours=24)):
+    parser = argparse.ArgumentParser()
+    parser.add_argument("-sd", "--start_date",
+                        help="Start Date of the time interval of the cron")
+    parser.add_argument("-ed", "--end_date",
+                        help="End Date of the time interval of the cron")
+    args, leftovers = parser.parse_known_args()
     total_seconds = interval.total_seconds()
     now = get_local_current_time()
     a_day_in_seconds = 60 * 60 * 24
@@ -75,12 +81,20 @@ def get_run_dates(interval=timedelta(hours=24)):
     a_minute_in_seconds = 60
     dates = []
     start = None
-    if len(sys.argv) == 3:
+
+    if args.start_date and args.end_date:
         try:
-            start = datetime.strptime(sys.argv[1], '%Y-%m-%d')
-            now = datetime.strptime(sys.argv[2], '%Y-%m-%d')
-        except:
-            logging.warning('Arguements {} are not convertible to datetime'.format(sys.argv))
+            start_date = datetime.strptime(args.start_date, '%Y-%m-%d')
+            end_date = datetime.strptime(args.end_date, '%Y-%m-%d')
+            start = start_date
+            now = end_date
+        except Exception as e:
+            logging.warning("Arguements {} are not convertible to datetime. Run dates will"
+                            "be generated for last time interval."
+                            .format((args.start_date, args.end_date)))
+    else:
+        logging.warning('Start and End date is not given. Run dates will be generated for last time interval.'
+                        .format((args.start_date, args.end_date)))
 
     assert a_day_in_seconds >= total_seconds, 'Maximum Time Interval is in days'
 
@@ -172,3 +186,11 @@ def upsert_redshift(df, target, unique_id, engine, s3_bucket_name, s3_region,
     if os.path.exists(file_name):
         os.remove(file_name)
     s3_client.delete_object(Bucket=config.S3_BUCKET_NAME, Key=file_name)
+
+
+if __name__ == '__main__':
+
+    run_dates = get_run_dates()
+    print(run_dates)
+
+
