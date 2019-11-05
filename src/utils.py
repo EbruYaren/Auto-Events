@@ -83,15 +83,10 @@ def get_run_dates(interval=timedelta(hours=24)):
     start = None
 
     if args.start_date and args.end_date:
-        try:
-            start_date = datetime.strptime(args.start_date, '%Y-%m-%d')
-            end_date = datetime.strptime(args.end_date, '%Y-%m-%d')
-            start = start_date
-            now = end_date
-        except Exception as e:
-            logging.warning("Arguements {} are not convertible to datetime. Run dates will"
-                            "be generated for last time interval."
-                            .format((args.start_date, args.end_date)))
+        start_date = datetime.strptime(args.start_date, '%Y-%m-%d')
+        end_date = datetime.strptime(args.end_date, '%Y-%m-%d')
+        start = start_date
+        now = end_date
     else:
         logging.warning('Start and End date is not given. Run dates will be generated for last time interval.'
                         .format((args.start_date, args.end_date)))
