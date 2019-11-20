@@ -1,6 +1,7 @@
 FROM python:3.7-slim
 
-ADD requirements.txt /
+WORKDIR /usr/src/app
+ADD requirements.txt .
 
 RUN pip3 install pandas==0.25.2 \
                  pymongo[tls,srv]==3.9 \
@@ -9,3 +10,6 @@ RUN pip3 install pandas==0.25.2 \
                  requests==2.22.0 \
                  SQLAlchemy==1.3.10 && \
     pip3 install -r requirements.txt
+
+ADD . .
+CMD tail -f /dev/null
