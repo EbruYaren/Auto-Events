@@ -12,4 +12,4 @@ RUN pip3 install pandas==0.25.2 \
     pip3 install -r requirements.txt
 
 ADD . .
-CMD tail -f /dev/null
+ENTRYPOINT ['python', 'main.py']
