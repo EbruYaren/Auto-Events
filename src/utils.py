@@ -2,13 +2,17 @@ import logging
 from datetime import datetime
 from dateutil import tz
 from datetime import timedelta
-import sys
 import boto3
 from botocore.exceptions import NoCredentialsError
 from src import config
 import os
 from time import process_time
 import argparse
+from sqlalchemy.dialects import postgresql
+from sqlalchemy.schema import CreateTable
+from sqlalchemy import VARCHAR, FLOAT, INTEGER, BOOLEAN, TIMESTAMP
+import numpy as np
+from sqlalchemy import MetaData, Table, Column
 
 
 def cache(func):
@@ -40,14 +44,15 @@ def timer(print_args=True):
             result = function(*args, **kwargs)
             process_end = process_time()
             end = get_local_current_time()
-            total_time = (end-start).seconds
-            cpu_time = round(process_end-process_start, 2)
-            io_time = total_time-cpu_time
+            total_time = (end - start).seconds
+            cpu_time = round(process_end - process_start, 2)
+            io_time = total_time - cpu_time
             print('Function {}, ended at {}. TOTAL TIME: {}, CPU TIME: {}, IO TIME: {} seconds.'
                   .format(function.__name__, end, total_time, cpu_time, io_time))
             return result
 
         return wrapper
+
     return decorator
 
 
@@ -71,6 +76,7 @@ def read_query(file_path: str, skip_line_count=0):
     except:
         raise Exception('{} is not found'.format(file_path))
     return ' '.join(con_str[skip_line_count:])
+
 
 @timer
 def get_run_dates(interval=timedelta(hours=24)):
@@ -126,9 +132,8 @@ def get_run_dates(interval=timedelta(hours=24)):
     while end >= start:
         dates.append(start)
         start += interval
-    logging.info("Start date: {}, end date: {}, time interval: {} ".format(dates[0], dates[-1], interval) )
+    logging.info("Start date: {}, end date: {}, time interval: {} ".format(dates[0], dates[-1], interval))
     return dates
-
 
 
 def upload_to_s3(local_file, bucket, s3_file, s3_access_key, s3_secret_key):
@@ -189,8 +194,30 @@ def upsert_redshift(df, target, unique_id, engine, s3_bucket_name, s3_region,
     s3_client.delete_object(Bucket=config.S3_BUCKET_NAME, Key=file_name)
 
 
-if __name__ == '__main__':
+def _pd_type_to_sql_alchemy(given_by_user):
+    type_to_sql_alch = {
+        np.dtype('O'): VARCHAR(128),
+        np.dtype('float64'): FLOAT,
+        np.dtype('int64'): INTEGER,
+        np.dtype('M'): TIMESTAMP,
+        np.dtype('b'): BOOLEAN,
+        np.dtype('<M8[ns]'): TIMESTAMP,
+    }
+    if given_by_user:
+        return {**type_to_sql_alch, **given_by_user}
+    return type_to_sql_alch
 
-    print(get_local_current_time())
+
+def _generate_columns(name_to_type, type_mapping):
+    columns = set(Column(column_name, type_mapping[column_type])
+                  for column_name, column_type in name_to_type.items())
+    return columns
 
 
+def create_table_from_df(table_name, df, schema=None, dialect=postgresql.dialect()):
+    pd_type_to_alch = _pd_type_to_sql_alchemy(schema)
+    name_to_type = df.dtypes.to_dict()
+    metadata = MetaData()
+    result_table = Table(table_name, metadata, *_generate_columns(name_to_type, pd_type_to_alch))
+    final_statement = CreateTable(result_table)
+    return final_statement.compile(dialect=dialect).__str__()
