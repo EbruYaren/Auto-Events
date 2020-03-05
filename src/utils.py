@@ -221,3 +221,18 @@ def create_table_from_df(table_name, df, schema=None, dialect=postgresql.dialect
     result_table = Table(table_name, metadata, *_generate_columns(name_to_type, pd_type_to_alch))
     final_statement = CreateTable(result_table)
     return final_statement.compile(dialect=dialect).__str__()
+
+
+def snake_case_fixer(df):
+    """
+    This function takes input data frame and returns the same data frame with renamed columns for snake case words.
+    Ex: "item_name" => "Item Name"
+    :param df:
+    :return: df with renamed columns
+    """
+    new_columns = {}
+    for column in df.columns:
+        renamed_column = ' '.join(word.title() for word in column.split('_'))
+        new_columns[column] = renamed_column
+    df = df.rename(columns=new_columns)
+    return df
