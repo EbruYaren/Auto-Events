@@ -33,7 +33,6 @@ WHERE route_id in {routes}
 
     def get_sample_orders_df(self, start_date, end_date, sample_size=10000):
         query = self._query_formatter(start_date, end_date, sample_size)
-        print(query)
         df = pd.read_sql(query, self.etl_engine)
         self.orders_df = df
         return df
