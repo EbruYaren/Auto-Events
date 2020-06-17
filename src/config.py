@@ -10,3 +10,8 @@
 # S3_SECRET_KEY = '<secret_key>'
 # S3_REGION = '<region>'
 # S3_BUCKET_NAME = '<bucket_name>'
+
+class Config:
+    chunk_size = 1000
+    domain_types = [1]
+    statuses = [900, 1000]
