@@ -5,12 +5,13 @@ import pickle
 
 class Route:
 
-    def __init__(self, route_id_list: list, engine=None, is_test=False, test_pickle_file=""):
+    def __init__(self, route_id_list: list, engine=None, is_test=False, test_pickle_file="", collection=None):
 
         self.__route_id_list = route_id_list
         self.__is_test = is_test
         self.__engine = engine
         self.__test_pickle_file = test_pickle_file
+        self.__collection = collection
         self.routes_df = self.fetch_routes_df()
 
     @staticmethod
@@ -38,7 +39,7 @@ class Route:
             route_ids = self.__route_id_list
             route_ids = list(map(ObjectId, route_ids))
             match = {"_id": {"$in": route_ids}}
-            cursor = collection.find(match)
+            cursor = self.__collection.find(match)
             data = self._convert_cursor_to_routes_df(cursor)
 
         return data

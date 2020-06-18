@@ -4,6 +4,7 @@ TEST = True
 
 REDSHIFT_ETL_URI = os.environ.get('REDSHIFT_ETL_URI')
 MONGO_ENGINE = os.environ.get('MONGO_URI')
+ROUTE_OBJECT_COLLETION = None
 
 WRITE_DEV_DB_URI = os.environ.get('WRITE_DEV_DB_URI')
 WRITE_ETL_DB_URI = os.environ.get('WRITE_ETL_DB_URI')
