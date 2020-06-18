@@ -6,6 +6,7 @@ from src.Predictor import *
 from src.Writer import Writer
 from src import REDSHIFT_ETL, WRITE_ENGINE
 
+
 def main():
     if config.TEST:
         start_date = '2020-06-06'
@@ -40,8 +41,11 @@ def main():
 
     if config.chunk_size is None:
         route_ids = orders.orders_df['_id_oid'].unique()
-        routes = Route(route_ids, config.MONGO_ENGINE, config.TEST, config.test_pickle_file, config.ROUTE_OBJECT_COLLETION)
-        processed_data = DataProcessor(orders.orders_df, routes.routes_df).process(include_all=True)
+        routes = Route(
+            route_ids, config.MONGO_ENGINE, config.TEST, config.test_pickle_file, config.ROUTE_OBJECT_COLLETION)
+        processed_data = DataProcessor(
+            orders.orders_df, routes.routes_df, minimum_location_limit=config.minimum_location_limit).process(
+            include_all=True)
         single_predictor = LogisticReachSinglePredictor(config.intercept, config.coefficients)
         bulk_predictor = BulkPredictor(processed_data, single_predictor)
         predictions = bulk_predictor.predict_in_bulk()
@@ -51,8 +55,11 @@ def main():
     else:
         for chunk_df in orders.orders_df:
             route_ids = chunk_df['_id_oid'].unique()
-            routes = Route(route_ids, config.MONGO_ENGINE, config.TEST, config.test_pickle_file, config.ROUTE_OBJECT_COLLETION)
-            processed_data = DataProcessor(chunk_df, routes.routes_df).process(include_all=True)
+            routes = Route(
+                route_ids, config.MONGO_ENGINE, config.TEST, config.test_pickle_file, config.ROUTE_OBJECT_COLLETION)
+            processed_data = DataProcessor(
+                chunk_df, routes.routes_df, minimum_location_limit=config.minimum_location_limit).process(
+                include_all=True)
             single_predictor = LogisticReachSinglePredictor(config.intercept, config.coefficients)
             bulk_predictor = BulkPredictor(processed_data, single_predictor)
             predictions = bulk_predictor.predict_in_bulk()

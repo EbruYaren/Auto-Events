@@ -9,8 +9,10 @@ class DataProcessor():
                          'time', 'distance_bin', 'time_passed_in_bin', 'tbe',
                          'dbw_reach_client', 'dbw_reach_client_bin']
 
-    def __init__(self, orders: pd.DataFrame, routes: pd.DataFrame, fibonacci_base=50):
+    def __init__(self, orders: pd.DataFrame, routes: pd.DataFrame, fibonacci_base=50, minimum_location_limit=3):
 
+
+        self.minimum_location_limit = minimum_location_limit
         self.merged_df = routes.merge(orders, left_on="route_id", right_on="delivery_route_oid", how="inner")
         self.fibonacci_base = fibonacci_base
 
@@ -52,7 +54,11 @@ class DataProcessor():
         return len(self.fibonacci_series) - 1
 
     def process(self, include_all=False):
+
         m_df = self.merged_df
+        counts = m_df.groupby('route_id')['time'].count()
+        filtered_ids = counts[counts >= self.minimum_location_limit].index
+        m_df = m_df[m_df['route_id'].isin(filtered_ids)]
         m_df['distance'] = m_df.apply(lambda r: self.haversine_apply(r), axis=1)
         m_df['distance_bin'] = m_df['distance'].apply(self.find_distance_bin)
         m_df['first_location_time'] = m_df.groupby(['delivery_route_oid'])['time'].transform(np.min)
