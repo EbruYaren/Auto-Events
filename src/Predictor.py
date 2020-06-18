@@ -30,13 +30,10 @@ class BulkPredictor:
         self.__predictor = predictor
 
     def predict_in_bulk(self):
-        all_orders = self.__processed_data['_id_oid'].unique()
-        all_orders = pd.DataFrame(all_orders, columns=['_id_oid'])
         self.__processed_data['is_reached'] = self.__processed_data.apply(
             lambda row: self.__predictor.predict(row['distance_bin'], row['time_passed_in_bin']), axis='columns')
         reached = self.__processed_data[self.__processed_data['is_reached']]
         reached['row_number'] = reached.groupby('_id_oid')['time'].rank(method='min')
         predictions = reached[reached['row_number'] == 1][['_id_oid', 'time', 'lat', 'lon']]
-        predictions = all_orders.merge(predictions, on='_id_oid', how='left')
 
         return predictions

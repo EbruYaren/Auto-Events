@@ -13,7 +13,7 @@ WRITE_TABLE_NAME = "reach_date_prediction"
 SCHEMA_NAME = "public" if TEST else "project_auto_events"
 
 test_pickle_file = "rick.pickle"
-chunk_size = None
-intercept = 0.414
+chunk_size = 100
+intercept = -0.414
 coefficients = [-0.815, 0.407]
 minimum_location_limit = 5

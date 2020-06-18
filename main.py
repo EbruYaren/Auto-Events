@@ -40,6 +40,7 @@ def main():
     orders = Order(start_date, end_date, REDSHIFT_ETL, courier_ids, chunk_size=config.chunk_size)
 
     if config.chunk_size is None:
+        order_ids = pd.DataFrame(orders.orders_df['_id_oid'], columns=['_id_oid'])
         route_ids = orders.orders_df['_id_oid'].unique()
         routes = Route(
             route_ids, config.MONGO_ENGINE, config.TEST, config.test_pickle_file, config.ROUTE_OBJECT_COLLETION)
@@ -49,11 +50,13 @@ def main():
         single_predictor = LogisticReachSinglePredictor(config.intercept, config.coefficients)
         bulk_predictor = BulkPredictor(processed_data, single_predictor)
         predictions = bulk_predictor.predict_in_bulk()
+        predictions = order_ids.merge(predictions, on='_id_oid', how='left')
         writer = Writer(predictions, WRITE_ENGINE)
         writer.write()
 
     else:
         for chunk_df in orders.orders_df:
+            order_ids = pd.DataFrame(chunk_df['_id_oid'], columns=['_id_oid'])
             route_ids = chunk_df['_id_oid'].unique()
             routes = Route(
                 route_ids, config.MONGO_ENGINE, config.TEST, config.test_pickle_file, config.ROUTE_OBJECT_COLLETION)
@@ -63,6 +66,7 @@ def main():
             single_predictor = LogisticReachSinglePredictor(config.intercept, config.coefficients)
             bulk_predictor = BulkPredictor(processed_data, single_predictor)
             predictions = bulk_predictor.predict_in_bulk()
+            predictions = order_ids.merge(predictions, on='_id_oid', how='left')
             writer = Writer(predictions, WRITE_ENGINE)
             writer.write()
 
