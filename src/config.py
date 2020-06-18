@@ -1,17 +1,15 @@
-# import os
-# DB CONNECTION URI
-# ANALYSIS_DB_URI = os.environ.get('ANALYSIS_DB_URI', '<ANALYSIS_DEV_URI>')
-# MAIN_DB_URI = os.environ.get('MAIN_DB_URI', '<MAIN_DB_DEV_URI>')
-# LOG_DB_URI = os.environ.get('MAIN_DB_URI', '<_LOG_DB_DEV_URI>')
+import os
 
-# ADDITIONAL VARIABLES
-# SLACK_HOOK_URL = os.environ.get(SLACK_HOOK, '<test_channel_hook>')
-# S3_ACCESS_KEY = '<access_key>'
-# S3_SECRET_KEY = '<secret_key>'
-# S3_REGION = '<region>'
-# S3_BUCKET_NAME = '<bucket_name>'
+TEST = True
 
-class Config:
-    chunk_size = 1000
-    domain_types = [1]
-    statuses = [900, 1000]
+REDSHIFT_ETL_URI = os.environ.get('REDSHIFT_ETL_URI')
+MONGO_ENGINE = os.environ.get('MONGO_URI')
+
+WRITE_TABLE_NAME = "reach_date_prediction"
+SCHEMA_NAME = "public" if TEST else "project_auto_events"
+
+
+test_pickle_file = "rick.pickle"
+chunk_size = 100
+intercept = 0.414
+coefficients = [-0.815, 0.407]

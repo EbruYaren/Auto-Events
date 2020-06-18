@@ -4,7 +4,7 @@ from src.Route import Route
 from src.DataProcessor import DataProcessor
 from src.Predictor import *
 from src.Writer import Writer
-
+from src import REDSHIFT_ETL
 
 def main():
     if config.TEST:
@@ -33,10 +33,10 @@ def main():
         '5e8b9ec8eb09c711f7cd1351',
         '5e8b67735ac282c2780437c1' )
         """
-        couriers_df = pd.read_sql(query, config.REDSHIFT_ETL)
+        couriers_df = pd.read_sql(query, REDSHIFT_ETL)
         courier_ids = couriers_df['courier_id'].to_list()
 
-    orders = Order(start_date, end_date, config.REDSHIFT_ETL, courier_ids, chunk_size=config.chunk_size)
+    orders = Order(start_date, end_date, REDSHIFT_ETL, courier_ids, chunk_size=config.chunk_size)
 
     if config.chunk_size is None:
         route_ids = orders.orders_df['_id_oid'].unique()
