@@ -8,8 +8,9 @@ class Writer:
                      'predicted_reach_dateL',
                      'latitude', 'longitude']
 
-    def __init__(self, predictions: pd.DataFrame):
+    def __init__(self, predictions: pd.DataFrame, engine):
         self.__predictions = predictions
+        self.__engine = engine
 
     def prepare_columns(self):
         self.__predictions['time_l'] = self.__predictions['time'] + timedelta(hours=3)
@@ -19,13 +20,11 @@ class Writer:
 
     def write(self):
         self.prepare_columns()
-        """
         self.__predictions.to_sql(
             name=src.config.WRITE_TABLE_NAME,
             schema=src.config.SCHEMA_NAME,
             index=False,
             if_exists='append',
             method='multi',
-            con=None
+            con=self.__engine
         )
-        """

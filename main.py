@@ -4,7 +4,7 @@ from src.Route import Route
 from src.DataProcessor import DataProcessor
 from src.Predictor import *
 from src.Writer import Writer
-from src import REDSHIFT_ETL
+from src import REDSHIFT_ETL, WRITE_ENGINE
 
 def main():
     if config.TEST:
@@ -45,7 +45,7 @@ def main():
         single_predictor = LogisticReachSinglePredictor(config.intercept, config.coefficients)
         bulk_predictor = BulkPredictor(processed_data, single_predictor)
         predictions = bulk_predictor.predict_in_bulk()
-        writer = Writer(predictions)
+        writer = Writer(predictions, WRITE_ENGINE)
         writer.write()
 
     else:
@@ -56,7 +56,7 @@ def main():
             single_predictor = LogisticReachSinglePredictor(config.intercept, config.coefficients)
             bulk_predictor = BulkPredictor(processed_data, single_predictor)
             predictions = bulk_predictor.predict_in_bulk()
-            writer = Writer(predictions)
+            writer = Writer(predictions, WRITE_ENGINE)
             writer.write()
 
 
