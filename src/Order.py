@@ -25,7 +25,6 @@ class Order:
         self.__etl_engine = etl_engine
         self.__courier_ids = courier_ids
         self.__chunk_size = chunk_size
-        self.orders_df = self.fetch_orders_df()
 
     def _create_in_clause(self, id_s: list):
         if len(id_s) == 0:
@@ -47,6 +46,7 @@ class Order:
 
     def fetch_orders_df(self):
         query = self._query_formatter()
-        df = pd.read_sql(query, self.__etl_engine, chunksize=self.__chunk_size)
-
-        return df
+        df_iterable = pd.read_sql(query, self.__etl_engine, chunksize=self.__chunk_size)
+        if self.__chunk_size == None:
+            return [df_iterable]
+        return df_iterable

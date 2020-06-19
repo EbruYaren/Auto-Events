@@ -1,4 +1,4 @@
-from src import config
+from src import config, ROUTES_COLLECTION
 from src.Order import Order
 from src.Route import Route
 from src.DataProcessor import DataProcessor
@@ -11,64 +11,32 @@ def main():
     if config.TEST:
         start_date = '2020-06-06'
         end_date = '2020-06-08'
-        query = """
-        SELECT _id_oid courier_id FROM etl_getir.couriers c
-        WHERE c.person_oid in (
-        '5bf2c0ff355c320018c800e5',
-        '5df1612281efff6400692268',
-        '5e0d768e117b3ee1885db2b1',
-        '5bf2c0ff355c320018c800e5',
-        '5e2edd0c295a758e61c05fea',
-        '5e714a717e392a9ce765e945',
-        '59b942f6d7b315b905ffbf80',
-        '5e714a717e392a9ce765e945',
-        '59b942f5d7b315b905ffbd0e',
-        '5cfb7a5a6d84890001b16571',
-        '5cfb7a5a6d84890001b16571',
-        '59b942f6d7b315b905ffc0c5',
-        '5e3adcc9a31b28400bd35e7b',
-        '5e3581e4b9c71b84c1606adb',
-        '59b942f6d7b315b905ffbf41',
-        '5e3581e4b9c71b84c1606adb',
-        '5dc500627aa58c549fe3582f',
-        '5e8b9ec8eb09c711f7cd1351',
-        '5e8b67735ac282c2780437c1' )
-        """
-        couriers_df = pd.read_sql(query, REDSHIFT_ETL)
-        courier_ids = couriers_df['courier_id'].to_list()
+        courier_ids = config.COURIER_IDS
+    else:
+        courier_ids = []
 
     orders = Order(start_date, end_date, REDSHIFT_ETL, courier_ids, chunk_size=config.chunk_size)
 
-    if config.chunk_size is None:
-        order_ids = pd.DataFrame(orders.orders_df['_id_oid'], columns=['_id_oid'])
-        route_ids = orders.orders_df['_id_oid'].unique()
+    for chunk_df in orders.fetch_orders_df():
+
+        order_ids = pd.DataFrame(chunk_df['_id_oid'], columns=['_id_oid'])
+
+        route_ids = list(chunk_df['delivery_route_oid'].unique())
+
         routes = Route(
-            route_ids, config.MONGO_ENGINE, config.TEST, config.test_pickle_file, config.ROUTE_OBJECT_COLLETION)
+            route_ids, ROUTES_COLLECTION, config.TEST, config.test_pickle_file, config.ROUTE_OBJECT_COLLETION)
+        routes_df = routes.fetch_routes_df()
+
         processed_data = DataProcessor(
-            orders.orders_df, routes.routes_df, minimum_location_limit=config.minimum_location_limit).process(
-            include_all=True)
-        single_predictor = LogisticReachSinglePredictor(config.intercept, config.coefficients)
+            orders=chunk_df, routes=routes_df, minimum_location_limit=config.MINIMUM_LOCATION_LIMIT,
+            fibonacci_base=config.FIBONACCI_BASE).process(include_all=False)
+
+        single_predictor = LogisticReachSinglePredictor(config.INTERCEPT, config.COEFFICIENTS)
         bulk_predictor = BulkPredictor(processed_data, single_predictor)
         predictions = bulk_predictor.predict_in_bulk()
         predictions = order_ids.merge(predictions, on='_id_oid', how='left')
-        writer = Writer(predictions, WRITE_ENGINE)
+        writer = Writer(predictions, WRITE_ENGINE, config.TABLE_NAME, config.SCHEMA_NAME)
         writer.write()
-
-    else:
-        for chunk_df in orders.orders_df:
-            order_ids = pd.DataFrame(chunk_df['_id_oid'], columns=['_id_oid'])
-            route_ids = chunk_df['_id_oid'].unique()
-            routes = Route(
-                route_ids, config.MONGO_ENGINE, config.TEST, config.test_pickle_file, config.ROUTE_OBJECT_COLLETION)
-            processed_data = DataProcessor(
-                chunk_df, routes.routes_df, minimum_location_limit=config.minimum_location_limit).process(
-                include_all=True)
-            single_predictor = LogisticReachSinglePredictor(config.intercept, config.coefficients)
-            bulk_predictor = BulkPredictor(processed_data, single_predictor)
-            predictions = bulk_predictor.predict_in_bulk()
-            predictions = order_ids.merge(predictions, on='_id_oid', how='left')
-            writer = Writer(predictions, WRITE_ENGINE)
-            writer.write()
 
 
 if __name__ == '__main__':

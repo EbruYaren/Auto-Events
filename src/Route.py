@@ -5,14 +5,12 @@ import pickle
 
 class Route:
 
-    def __init__(self, route_id_list: list, engine=None, is_test=False, test_pickle_file="", collection=None):
+    def __init__(self, route_id_list: list, collection=None, is_test=False, test_pickle_file=""):
 
         self.__route_id_list = route_id_list
         self.__is_test = is_test
-        self.__engine = engine
         self.__test_pickle_file = test_pickle_file
         self.__collection = collection
-        self.routes_df = self.fetch_routes_df()
 
     @staticmethod
     def _convert_cursor_to_routes_df(cursor):
