@@ -5,7 +5,7 @@ from math import radians, cos, sin, asin, sqrt, log, e
 
 class DataProcessor():
     fibonacci_series = [0, 1, 2, 3, 5, 8, 13, 21]
-    returning_columns = ['delivery_route_oid', 'courier_courier_oid', 'reach_date',
+    returning_columns = ['_id_oid', 'delivery_route_oid', 'courier_courier_oid', 'reach_date',
                          'time', 'distance_bin', 'time_passed_in_bin', 'tbe',
                          'dbw_reach_client', 'dbw_reach_client_bin', 'lat', 'lon']
 

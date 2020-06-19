@@ -29,17 +29,16 @@ class Route:
         return pd.DataFrame(all_datas)
 
     def fetch_routes_df(self):
+        self.__is_test = False
         if self.__is_test:
-            pass
             with open(self.__test_pickle_file, 'rb') as test_file:
                 cursor = pickle.load(test_file)
             data = self._convert_cursor_to_routes_df(cursor)
-            return data
-
-        route_ids = self.__route_id_list
-        route_ids = list(map(ObjectId, route_ids))
-        match = {"_id": {"$in": route_ids}}
-        cursor = self.__collection.find(match)
-        data = self._convert_cursor_to_routes_df(cursor)
+        else:
+            route_ids = self.__route_id_list
+            route_ids = list(map(ObjectId, route_ids))
+            match = {"_id": {"$in": route_ids}}
+            cursor = self.__collection.find(match)
+            data = self._convert_cursor_to_routes_df(cursor)
 
         return data

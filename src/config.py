@@ -13,7 +13,7 @@ TABLE_NAME = "reach_date_prediction"
 SCHEMA_NAME = "public" if TEST else "project_auto_events"
 
 test_pickle_file = "rick.pickle"
-chunk_size = 100
+chunk_size = 1000
 INTERCEPT = -0.414
 COEFFICIENTS = [-0.815, 0.407]
 MINIMUM_LOCATION_LIMIT = 3

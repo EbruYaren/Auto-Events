@@ -9,7 +9,6 @@ from src.utils import timer
 
 @timer()
 def main():
-    return
     if config.TEST:
         start_date = '2020-06-06'
         end_date = '2020-06-08'
@@ -19,6 +18,8 @@ def main():
 
     orders = Order(start_date, end_date, REDSHIFT_ETL, courier_ids, chunk_size=config.chunk_size)
 
+
+
     for chunk_df in orders.fetch_orders_df():
 
         order_ids = pd.DataFrame(chunk_df['_id_oid'], columns=['_id_oid'])
@@ -26,7 +27,7 @@ def main():
         route_ids = list(chunk_df['delivery_route_oid'].unique())
 
         routes = Route(
-            route_ids, ROUTES_COLLECTION, config.TEST, config.test_pickle_file, config.ROUTE_OBJECT_COLLETION)
+            route_ids, ROUTES_COLLECTION, config.TEST, config.test_pickle_file)
         routes_df = routes.fetch_routes_df()
 
         processed_data = DataProcessor(
