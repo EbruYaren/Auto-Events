@@ -8,6 +8,7 @@ from src import REDSHIFT_ETL, WRITE_ENGINE
 
 
 def main():
+    return
     if config.TEST:
         start_date = '2020-06-06'
         end_date = '2020-06-08'
