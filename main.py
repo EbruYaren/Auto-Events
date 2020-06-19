@@ -5,8 +5,9 @@ from src.DataProcessor import DataProcessor
 from src.Predictor import *
 from src.Writer import Writer
 from src import REDSHIFT_ETL, WRITE_ENGINE
+from src.utils import timer
 
-
+@timer()
 def main():
     return
     if config.TEST:
