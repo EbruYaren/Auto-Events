@@ -3,7 +3,7 @@ import os
 TEST = True
 
 REDSHIFT_ETL_URI = os.environ.get('REDSHIFT_ETL_URI')
-MONGO_CLIENT_URI = os.environ.get('MONGO_URI')
+MONGO_CLIENT_URI = os.environ.get('MAIN_DB_URI')
 ROUTE_OBJECT_COLLETION = None
 
 WRITE_DEV_DB_URI = os.environ.get('WRITE_DEV_DB_URI')

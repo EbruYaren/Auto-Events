@@ -1,31 +1,21 @@
-# cron_template
+#AUTO-EVENT
 
 ##Dependent Crons:
-cron1 <br>
-cron2 <br>
-cron3
+There are no dependency
 ## Cron Information
 
-* Frequency: (Daily | Hourly etc.)
-* Parameters: <parameter_name>:<parameter_format> (Ex: start_date:yyyy-mm-dd)
-* Description: <short_description>
+* Frequency: Hourly
+* Description: This cron generates predicted reach time and locations for orders with status 900 or 1000 and domaintype 1.
 
 ### Databases & Environment Variables
 
-| Database          | Permission        | Collections        | Environment Name            
-| ----------------- |:----------------: | ------------------ | ---------------------------
-| <db_name>         | <permission_type> | <collection_name>  | <env_variable_name>        
-| <db_name>         |      (r/w)        | <collection_name>  | <env_variable_name>        
-| MAIN_DB           |         r         | orders, clients    |          MAIN_DB           
+| Database          | Permission        | Collections,Schema       | Environment Name            
+| ----------------- |:----------------: | ------------------ | ---------------------------   
+| ETL_CLUSTER       |      (r/w)        | project_auto_events| REDSHIFT_ETL_URI       
+| MAIN_DB           |         r         | orders, clients    |          MAIN_DB_URI           
 
 
 
-
-### Optional Environment Variables
-Ex:
-* <api_token_name>
-* <slack_hook_url>
-* <run_environment>
 
 
 
