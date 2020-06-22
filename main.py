@@ -38,9 +38,9 @@ def main():
     print("table created")
 
     orders = Order(start_date, end_date, REDSHIFT_ETL, courier_ids, chunk_size=config.chunk_size)
-    i = 0
-    for chunk_df in orders.fetch_orders_df():
 
+    for chunk_df in orders.fetch_orders_df():
+        print("chunk df length:",chunk_df.shape)
         order_ids = pd.DataFrame(chunk_df['_id_oid'], columns=['_id_oid'])
 
         route_ids = list(chunk_df['delivery_route_oid'].unique())
