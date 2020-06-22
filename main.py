@@ -25,6 +25,7 @@ def main():
         end_date = str(now)
         courier_ids = []
 
+    print('Create Table Status:', config.CREATE_TABLE)
     if config.CREATE_TABLE:
         with WRITE_ENGINE.begin() as connection:
             create_table(connection, config.CREATE_TABLE_QUERY)
