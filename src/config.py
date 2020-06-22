@@ -1,6 +1,7 @@
 import os
-
-TEST = True
+from datetime import timedelta
+TEST = False
+CREATE_TABLE =True
 
 REDSHIFT_ETL_URI = os.environ.get('REDSHIFT_ETL_URI')
 MONGO_CLIENT_URI = os.environ.get('MAIN_DB_URI')
@@ -13,7 +14,7 @@ TABLE_NAME = "reach_date_prediction"
 SCHEMA_NAME = "public" if TEST else "project_auto_events"
 
 test_pickle_file = "rick.pickle"
-chunk_size = 1000
+chunk_size = 10000
 INTERCEPT = -0.414
 COEFFICIENTS = [-0.815, 0.407]
 MINIMUM_LOCATION_LIMIT = 3
@@ -33,3 +34,5 @@ CREATE TABLE project_auto_events.reach_date_prediction
     predictedat  timestamp default getdate()
 );
 """
+
+RUN_INTERVAL = timedelta(hours=1, minutes=30)

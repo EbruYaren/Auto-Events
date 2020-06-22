@@ -18,7 +18,7 @@ class DataAccess:
 
 
 
-def remove_duplicates(connection, table_name, unique_id, unique_fields, qg=False):
+def remove_duplicates(connection, table_name, unique_id, unique_fields, schema_name = 'public', qg=False):
     query_temp = """
     DELETE
 FROM {table_name}
@@ -33,9 +33,9 @@ WHERE {unique_id} IN (
 )
 
     """
-
+    table = '.'.join([schema_name, table_name])
     unique_fields = ','.join(unique_fields)
-    query = query_temp.format(table_name=table_name, unique_id=unique_id, unique_fields=unique_fields)
+    query = query_temp.format(table_name=table, unique_id=unique_id, unique_fields=unique_fields)
     if qg:
         return query
     connection.execute(query)
@@ -71,4 +71,4 @@ def grant_access(connection, table_name, schema_name='public'):
     return grant_status
 
 if __name__ == '__main__':
-    print(grant_access('', 'rach_date_prediction_2', 'preds'))
+    print(remove_duplicates('', 'reah_date_prediction', 'prediction_id', ['order_id'], qg=True))
