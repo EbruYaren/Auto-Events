@@ -44,7 +44,7 @@ def main():
         order_ids = pd.DataFrame(chunk_df['_id_oid'], columns=['_id_oid'])
 
         route_ids = list(chunk_df['delivery_route_oid'].unique())
-
+        print("Route id lengh:", len(route_ids))
         routes = Route(
             route_ids, ROUTES_COLLECTION, config.TEST, config.test_pickle_file)
         routes_df = routes.fetch_routes_df()

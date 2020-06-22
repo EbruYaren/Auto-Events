@@ -5,7 +5,7 @@ import pickle
 
 class Route:
 
-    def __init__(self, route_id_list: list, collection=None, is_test=False, test_pickle_file=""):
+    def__init__(self, route_id_list: list, collection=None, is_test=False, test_pickle_file=""):
 
         self.__route_id_list = route_id_list
         self.__is_test = is_test
@@ -17,7 +17,6 @@ class Route:
         all_datas = []
 
         for data in cursor:
-            print(data)
             for i, location in enumerate(data['route']):
                 temp_dict = {}
                 temp_dict['route_id'] = str(data['_id'])
