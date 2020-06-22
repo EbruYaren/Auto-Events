@@ -5,7 +5,7 @@ import pickle
 
 class Route:
 
-    def__init__(self, route_id_list: list, collection=None, is_test=False, test_pickle_file=""):
+    def __init__(self, route_id_list: list, collection=None, is_test=False, test_pickle_file=""):
 
         self.__route_id_list = route_id_list
         self.__is_test = is_test
