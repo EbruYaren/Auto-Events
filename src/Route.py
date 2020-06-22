@@ -15,8 +15,9 @@ class Route:
     @staticmethod
     def _convert_cursor_to_routes_df(cursor):
         all_datas = []
-        print("cursor length:", len(list(cursor)))
+
         for data in cursor:
+            print(data)
             for i, location in enumerate(data['route']):
                 temp_dict = {}
                 temp_dict['route_id'] = str(data['_id'])
