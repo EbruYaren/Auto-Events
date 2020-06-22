@@ -5,17 +5,47 @@ from src.DataProcessor import DataProcessor
 from src.Predictor import *
 from src.Writer import Writer
 from src import REDSHIFT_ETL, WRITE_ENGINE
-from src.utils import timer
+from src.utils import timer, get_run_dates
+from datetime import timedelta, datetime
+import argparse
 
 @timer()
 def main():
+    parser = argparse.ArgumentParser()
+    parser.add_argument("-sd", "--start_date",
+                        help="Start Date of the time interval of the cron")
+    parser.add_argument("-ed", "--end_date",
+                        help="End Date of the time interval of the cron")
+    args, leftovers = parser.parse_known_args()
+    start_date = datetime.strptime(args.start_date, '%Y-%m-%d')
+    end_date = datetime.strptime(args.end_date, '%Y-%m-%d')
+
+    print(start_date, end_date)
+
+
+
+    dates = get_run_dates(interval=timedelta(hours=1))
+
+
+
+    for sd, ed in zip(dates, dates[1:]):
+        print(sd, ed)
+
+    parser = argparse.ArgumentParser()
+    args, leftovers = parser.parse_known_args()
+    print(args)
+    print(leftovers)
     return
+
+
+
     if config.TEST:
         start_date = '2020-06-06'
         end_date = '2020-06-08'
         courier_ids = config.COURIER_IDS
     else:
         courier_ids = []
+
 
     orders = Order(start_date, end_date, REDSHIFT_ETL, courier_ids, chunk_size=config.chunk_size)
 

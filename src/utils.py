@@ -78,7 +78,7 @@ def read_query(file_path: str, skip_line_count=0):
     return ' '.join(con_str[skip_line_count:])
 
 
-@timer
+@timer()
 def get_run_dates(interval=timedelta(hours=24)):
     parser = argparse.ArgumentParser()
     parser.add_argument("-sd", "--start_date",
@@ -236,3 +236,6 @@ def snake_case_fixer(df):
         new_columns[column] = renamed_column
     df = df.rename(columns=new_columns)
     return df
+
+if __name__ == '__main__':
+    print(get_run_dates(interval=timedelta(hours=1)))
