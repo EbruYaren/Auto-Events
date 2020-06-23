@@ -22,5 +22,6 @@ try:
         WRITE_ENGINE = create_engine(WRITE_DEV_DB_URI)
     else:
         WRITE_ENGINE = REDSHIFT_ETL
-except:
+except Exception as e:
+    print(e)
     WRITE_ENGINE = None
