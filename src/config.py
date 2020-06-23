@@ -1,7 +1,7 @@
 import os
 from datetime import timedelta
-TEST = True
-CREATE_TABLE =False
+TEST = False
+CREATE_TABLE = False
 
 REDSHIFT_ETL_URI = os.environ.get('REDSHIFT_ETL_URI')
 MONGO_CLIENT_URI = os.environ.get('MAIN_DB_URI')

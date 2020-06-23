@@ -28,7 +28,7 @@ def main():
 
     print("start date:", start_date)
     print("end date:", end_date)
-
+    return
     print('Create Table Status:', config.CREATE_TABLE)
     if config.CREATE_TABLE:
         with WRITE_ENGINE.begin() as connection:
