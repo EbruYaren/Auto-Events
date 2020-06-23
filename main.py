@@ -12,7 +12,7 @@ from src.data_access import grant_access, create_table, remove_duplicates, drop_
 def main():
 
     print("cron started")
-
+    print("write egine type:", type(WRITE_ENGINE))
     now = get_local_current_time().replace(minute=0, second=0, microsecond=0)
     start = now-config.RUN_INTERVAL
 
