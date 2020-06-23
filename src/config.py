@@ -35,4 +35,4 @@ CREATE TABLE project_auto_events.reach_date_prediction
 );
 """
 
-RUN_INTERVAL = timedelta(hours=1, minutes=30)
+RUN_INTERVAL = timedelta(days=60)

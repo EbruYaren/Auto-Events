@@ -11,8 +11,8 @@ from src.data_access import grant_access, create_table, remove_duplicates, drop_
 @timer()
 def main():
 
-    print("cron started")
-    print("write egine type:", type(WRITE_ENGINE))
+    print("Cron started")
+
     now = get_local_current_time().replace(minute=0, second=0, microsecond=0)
     start = now-config.RUN_INTERVAL
 
@@ -26,25 +26,24 @@ def main():
         end_date = str(now)
         courier_ids = []
 
-    print("start date:", start_date)
-    print("end date:", end_date)
+    print("Start date:", start_date)
+    print("End date:", end_date)
 
-    print('Create Table Status:', config.CREATE_TABLE)
+
     if config.CREATE_TABLE:
         with WRITE_ENGINE.begin() as connection:
             create_table(connection, config.CREATE_TABLE_QUERY)
             grant_access(connection, config.TABLE_NAME, config.SCHEMA_NAME)
-
-    print("table created")
+            print("Table created")
 
     orders = Order(start_date, end_date, REDSHIFT_ETL, courier_ids, chunk_size=config.chunk_size)
-
+    total_processed_route = 0
     for chunk_df in orders.fetch_orders_df():
-        print("chunk df length:",chunk_df.shape)
+
         order_ids = pd.DataFrame(chunk_df['_id_oid'], columns=['_id_oid'])
 
         route_ids = list(chunk_df['delivery_route_oid'].unique())
-        print("Route id lengh:", len(route_ids))
+
         routes = Route(
             route_ids, ROUTES_COLLECTION, config.TEST, config.test_pickle_file)
         routes_df = routes.fetch_routes_df()
@@ -57,14 +56,16 @@ def main():
         bulk_predictor = BulkPredictor(processed_data, single_predictor)
         predictions = bulk_predictor.predict_in_bulk()
         predictions = order_ids.merge(predictions, on='_id_oid', how='left')
+
         writer = Writer(predictions, WRITE_ENGINE, config.TABLE_NAME, config.SCHEMA_NAME)
         writer.write()
-        print("writeen")
+        total_processed_route += len(route_ids)
+        print("Total Processed Routes: ", total_processed_route)
 
     with WRITE_ENGINE.begin() as connection:
         remove_duplicates(connection, config.TABLE_NAME, 'prediction_id', ['order_id'], config.SCHEMA_NAME)
 
-    print("duplicates removed")
+    print("Duplicates are removed")
 
 
 
