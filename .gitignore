@@ -8,3 +8,7 @@
 *.png
 src/__pycache__/
 venv/
+*.ipynb
+.DS_Store
+src/.DS_Stıre
+.gitignore
