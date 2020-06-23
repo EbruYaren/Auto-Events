@@ -59,7 +59,7 @@ def main():
         predictions = order_ids.merge(predictions, on='_id_oid', how='left')
         writer = Writer(predictions, WRITE_ENGINE, config.TABLE_NAME, config.SCHEMA_NAME)
         writer.write()
-        print(i, "writeen")
+        print("writeen")
 
     with WRITE_ENGINE.begin() as connection:
         remove_duplicates(connection, config.TABLE_NAME, 'prediction_id', ['order_id'], config.SCHEMA_NAME)

@@ -9,7 +9,7 @@ except:
     REDSHIFT_ETL = None
 
 try:
-    MONGO_CLIENT = MongoClient(MONGO_CLIENT_URI, ssl_cert_reqs=ssl.CERT_NONE)
+    MONGO_CLIENT = MongoClient(MONGO_CLIENT_URI)
 except:
     MONGO_CLIENT = None
 try:
