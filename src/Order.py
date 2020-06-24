@@ -14,7 +14,7 @@ class Order:
         FROM etl_market_order.marketorders o
         LEFT JOIN project_auto_events.reach_date_prediction rdp ON rdp.order_id = o._id_oid
         WHERE status in (900, 1000)
-        AND checkoutdatel BETWEEN  '{start_date}' AND  '{end_date}' AND domaintype = 1
+        AND date_add('hour', 3, deliver_date) BETWEEN  '{start_date}' AND  '{end_date}' AND domaintype = 1
         AND rdp.order_id isnull
         {courier_filter}
     """
