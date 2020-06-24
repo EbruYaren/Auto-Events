@@ -12,8 +12,10 @@ class Order:
            reach_location__coordinates_lon, reach_location__coordinates_lat,
            delivery_address_location__coordinates_lon, delivery_address_location__coordinates_lat
         FROM etl_market_order.marketorders o
+        LEFT JOIN project_auto_events.reach_date_prediction rdp ON rdp.order_id = o._id_oid
         WHERE status in (900, 1000)
         AND checkoutdatel BETWEEN  '{start_date}' AND  '{end_date}' AND domaintype = 1
+        AND rdp.order_id isnull
         {courier_filter}
     """
 
