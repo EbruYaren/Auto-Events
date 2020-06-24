@@ -237,5 +237,18 @@ def snake_case_fixer(df):
     df = df.rename(columns=new_columns)
     return df
 
+def get_run_params():
+    now = get_local_current_time().replace(minute=0, second=0, microsecond=0)
+    start = now - config.RUN_INTERVAL
+
+    parser = argparse.ArgumentParser()
+    parser.add_argument("-sd", "--start_date", default=str(start),
+                        help="Start Date of the time interval of the cron")
+    parser.add_argument("-ed", "--end_date", default=str(now),
+                        help="End Date of the time interval of the cron")
+    parsed = parser.parse_args()
+
+    return parsed.start_date, parsed.end_date
+
 if __name__ == '__main__':
     print(get_run_dates(interval=timedelta(hours=1)))

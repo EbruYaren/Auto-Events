@@ -5,7 +5,7 @@ from src.DataProcessor import DataProcessor
 from src.Predictor import *
 from src.Writer import Writer
 from src import REDSHIFT_ETL, WRITE_ENGINE
-from src.utils import timer, get_run_dates, get_local_current_time
+from src.utils import timer, get_run_params, get_local_current_time
 from src.data_access import grant_access, create_table, remove_duplicates, drop_table
 
 @timer()
@@ -13,17 +13,12 @@ def main():
 
     print("Cron started")
 
-    now = get_local_current_time().replace(minute=0, second=0, microsecond=0)
-    start = now-config.RUN_INTERVAL
-
-
     if config.TEST:
         start_date = '2020-06-06'
         end_date = '2020-06-08'
         courier_ids = config.COURIER_IDS
     else:
-        start_date = str(start)
-        end_date = str(now)
+        start_date, end_date = get_run_params()
         courier_ids = []
 
     print("Start date:", start_date)
