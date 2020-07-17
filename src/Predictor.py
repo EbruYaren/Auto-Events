@@ -7,7 +7,7 @@ class SinglePredictor(abc.ABC):
 
     @abc.abstractmethod
     def predict(self):
-        raise NotImplemented
+        pass
 
 
 class ReachLogisticReachSinglePredictor(SinglePredictor):

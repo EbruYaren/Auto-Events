@@ -1,9 +1,11 @@
 import numpy as np
 import pandas as pd
 from math import radians, cos, sin, asin, sqrt, log, e
+import matplotlib.pyplot as plt
+import abc
 
 
-class DataProcessor():
+class DataProcessor(abc.ABC):
 
     @staticmethod
     def haversine(lon1, lat1, lon2, lat2):
@@ -22,8 +24,38 @@ class DataProcessor():
         r = 6371  # Radius of earth in kilometers. Use 3956 for miles
         return c * r
 
+    @staticmethod
+    def remove_outliers(df: pd.DataFrame, col_name: str, whisker=1.5):
+        q = df[col_name].quantile([.25, .75])
+        iqr = q[.75] - q[.25]
+        lower_bound = q[.25] - whisker * iqr
+        upper_bound = q[.75] + whisker * iqr
+
+        return df[df[col_name].between(lower_bound, upper_bound)]
+
+    @staticmethod
+    def plot_story(
+            route: pd.DataFrame, story_cols: list, vline_cols=[], figsize=(12, 6),
+            story_linewidth=1, story_markersize=3, vlinewidth=3):
+
+        colors = ['w', 'b', 'y', 'r', 'g', 'gray']
+
+        fig, ax = plt.subplots(figsize=figsize)
+
+        for i, col in enumerate(story_cols):
+            route[col].plot(lw=story_linewidth, marker='o', markersize=story_markersize, c=colors[i], ax=ax, label=col)
+
+        for i, col in enumerate(vline_cols):
+            val = route[col].values[0]
+            label = "{}: {}".format(col, val)
+            ax.axvline(val, c=colors[i + 1], lw=vlinewidth, label=label)
+
+        ax.legend()
+        return fig, ax
+
+    @abc.abstractmethod
     def process(self):
-        raise NotImplemented
+        pass
 
 
 class ReachDataProcessor(DataProcessor):
