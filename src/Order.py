@@ -10,7 +10,9 @@ class Order:
            client_location__coordinates_lon, client_location__coordinates_lat,
            deliver_location__coordinates_lon, deliver_location__coordinates_lat,
            reach_location__coordinates_lon, reach_location__coordinates_lat,
-           delivery_address_location__coordinates_lon, delivery_address_location__coordinates_lat
+           delivery_address_location__coordinates_lon, delivery_address_location__coordinates_lat,
+           delivery_job_oid,
+           delivery_batch_index
         FROM etl_market_order.marketorders o
         LEFT JOIN project_auto_events.reach_date_prediction rdp ON rdp.order_id = o._id_oid
         WHERE status in (900, 1000)

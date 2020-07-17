@@ -1,7 +1,8 @@
 import os
 from datetime import timedelta
 TEST = False
-CREATE_TABLE = False
+REACH_CREATE_TABLE = False
+DEPART_CREATE_TABLE = False
 
 REDSHIFT_ETL_URI = os.environ.get('REDSHIFT_ETL_URI')
 MONGO_CLIENT_URI = os.environ.get('MAIN_DB_URI')
@@ -10,7 +11,19 @@ ROUTE_OBJECT_COLLETION = None
 WRITE_DEV_DB_URI = os.environ.get('DEV_DB_URI')
 WRITE_ETL_DB_URI = os.environ.get('WRITE_ETL_DB_URI')
 
-TABLE_NAME = "reach_date_prediction"
+REACH_TABLE_NAME = "reach_date_prediction"
+REACH_TABLE_COLUMNS = ['order_id',
+                     'predicted_reach_date',
+                     'predicted_reach_dateL',
+                     'latitude', 'longitude']
+
+
+DEPART_TABLE_NAME = "depart_date_prediction"
+DEPART_TABLE_COLUMNS = ['order_id',
+                     'predicted_depart_date',
+                     'predicted_depart_dateL',
+                     'latitude', 'longitude']
+
 SCHEMA_NAME = "public" if TEST else "project_auto_events"
 
 test_pickle_file = "rick.pickle"
