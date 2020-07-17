@@ -102,7 +102,7 @@ class DepartDataProcessor(DataProcessor):
             lambda route: (route['time'] - route['time'].shift(1)).dt.total_seconds()).droplevel(0)
 
         data['distance_to_warehouse'] = data.apply(
-            lambda row: haversine(
+            lambda row: DataProcessor.haversine(
                 row['lon'], row['lat'],
                 row['warehouse_location__coordinates_lon'],
                 row['warehouse_location__coordinates_lat']),
@@ -117,7 +117,7 @@ class DepartDataProcessor(DataProcessor):
         data['prev_lon'] = data.groupby('_id_oid')['lon'].shift(1)
 
         data['distance_to_prev_event'] = data.apply(
-            lambda row: haversine(
+            lambda row: DataProcessor.haversine(
                 row['lon'], row['lat'],
                 row['prev_lon'],
                 row['prev_lat']),
