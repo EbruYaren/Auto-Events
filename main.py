@@ -37,15 +37,20 @@ def main():
             print("Depart Table created")
 
     orders = Order(start_date, end_date, REDSHIFT_ETL, courier_ids, chunk_size=config.chunk_size)
-    total_processed_route = 0
+    total_processed_routes_for_reach = 0
+    total_processed_routes_for_depart = 0
 
     for chunk_df in orders.fetch_orders_df():
 
-        #reach_main(chunk_df)
-        depart_main(chunk_df)
+        processed_reach_orders = reach_main(chunk_df)
+        processed_depart_orders = depart_main(chunk_df)
 
-        total_processed_route += len(route_ids)
-        print("Total Processed Routes: ", total_processed_route)
+        total_processed_routes_for_reach += processed_reach_orders
+        total_processed_routes_for_depart += processed_depart_orders
+
+        print("Total Processed Routes For Reach : ", total_processed_routes_for_reach)
+        print("Total Processed Routes for Depart: ", total_processed_routes_for_depart)
+        print()
 
 
     with WRITE_ENGINE.begin() as connection:
@@ -76,8 +81,10 @@ def reach_main(chunk_df:pd.DataFrame):
     writer = Writer(predictions, WRITE_ENGINE, config.REACH_TABLE_NAME, config.SCHEMA_NAME,
                     config.REACH_TABLE_COLUMNS)
     writer.write()
-    total_processed_route += len(route_ids)
-    print("Total Processed Routes: ", total_processed_route)
+
+    return len(route_ids)
+
+
 
 
 def depart_main(chunk_df:pd.DataFrame):
@@ -101,6 +108,7 @@ def depart_main(chunk_df:pd.DataFrame):
                     config.DEPART_TABLE_COLUMNS)
     writer.write()
 
+    return len(route_ids)
 
 if __name__ == '__main__':
     main()
