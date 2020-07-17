@@ -28,8 +28,13 @@ SCHEMA_NAME = "public" if TEST else "project_auto_events"
 
 test_pickle_file = "rick.pickle"
 chunk_size = 10000
-INTERCEPT = -0.414
-COEFFICIENTS = [-0.815, 0.407]
+
+
+REACH_INTERCEPT = -0.414
+REACH_COEFFICIENTS = [-0.815, 0.407]
+DEPART_INTERCEPT = -5.234
+DEPART_COEFFICIENTS = [0.557, 0.047, 1.165]
+
 MINIMUM_LOCATION_LIMIT = 3
 FIBONACCI_BASE = 50
 

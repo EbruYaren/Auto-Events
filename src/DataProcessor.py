@@ -105,7 +105,7 @@ class DepartDataProcessor(DataProcessor):
             lambda row: DataProcessor.haversine(
                 row['lon'], row['lat'],
                 row['warehouse_location__coordinates_lon'],
-                row['warehouse_location__coordinates_lat']),
+                row['warehouse_location__coordinates_lat']) * 1000,
             axis='columns')
 
         data['dist_to_warehouse_diff'] = data.groupby('_id_oid').apply(
@@ -120,7 +120,7 @@ class DepartDataProcessor(DataProcessor):
             lambda row: DataProcessor.haversine(
                 row['lon'], row['lat'],
                 row['prev_lon'],
-                row['prev_lat']),
+                row['prev_lat']) * 1000,
             axis='columns')
 
         data['speed_to_prev_event'] = data['distance_to_prev_event'] / data['tbe']

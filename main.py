@@ -68,7 +68,7 @@ def reach_main(chunk_df:pd.DataFrame):
         orders=chunk_df, routes=routes_df, minimum_location_limit=config.MINIMUM_LOCATION_LIMIT,
         fibonacci_base=config.FIBONACCI_BASE).process(include_all=False)
 
-    single_predictor = ReachLogisticReachSinglePredictor(config.INTERCEPT, config.COEFFICIENTS)
+    single_predictor = ReachLogisticReachSinglePredictor(config.REACH_INTERCEPT, config.REACH_COEFFICIENTS)
     bulk_predictor = ReachBulkPredictor(processed_data, single_predictor)
     predictions = bulk_predictor.predict_in_bulk()
     predictions = order_ids.merge(predictions, on='_id_oid', how='left')
@@ -90,9 +90,9 @@ def depart_main(chunk_df:pd.DataFrame):
     routes_df = routes.fetch_routes_df()
 
     processed_data = DepartDataProcessor(
-        orders=chunk_df, routes=routes_df).process(include_all=False)
+        orders=chunk_df, routes=routes_df).process()
 
-    single_predictor = DepartLogisticReachSinglePredictor(config.INTERCEPT, config.COEFFICIENTS)
+    single_predictor = DepartLogisticReachSinglePredictor(config.DEPART_INTERCEPT, config.DEPART_COEFFICIENTS)
     bulk_predictor = DepartBulkPredictor(processed_data, single_predictor)
     predictions = bulk_predictor.predict_in_bulk()
     predictions = order_ids.merge(predictions, on='_id_oid', how='left')

@@ -64,12 +64,12 @@ class DepartBulkPredictor:
     def predict_in_bulk(self):
         df = self.__processed_data.copy()
 
-        df['predictions'] = df.appy(
+        df['predictions'] = df.apply(
             lambda row: self.__predictor.predict(
                 row['smooth_speed_to_warehouse'],
                 row['smooth_speed_to_prev_event'],
                 row['dbw_warehouse_log']
-            ))
+            ), axis='columns')
         df['rn'] = df.groupby('_id_oid')['index'].rank(method='min')  # check if ture
         true_preds = df[(df['predictions']) & (df['time'] > df['handover_date'])]
         true_preds['true_rn'] = true_preds.groupby('_id_oid')['index'].rank(method='min')
