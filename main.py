@@ -41,7 +41,7 @@ def main():
 
     for chunk_df in orders.fetch_orders_df():
 
-        reach_main(chunk_df)
+        #reach_main(chunk_df)
         depart_main(chunk_df)
 
         total_processed_route += len(route_ids)
@@ -49,7 +49,7 @@ def main():
 
 
     with WRITE_ENGINE.begin() as connection:
-        remove_duplicates(connection, config.REACH_TABLE_NAME, 'prediction_id', ['order_id'], config.SCHEMA_NAME)
+        #remove_duplicates(connection, config.REACH_TABLE_NAME, 'prediction_id', ['order_id'], config.SCHEMA_NAME)
         remove_duplicates(connection, config.DEPART_TABLE_NAME, 'prediction_id', ['order_id'], config.SCHEMA_NAME)
 
     print("Duplicates are removed")
