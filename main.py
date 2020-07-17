@@ -97,7 +97,8 @@ def depart_main(chunk_df:pd.DataFrame):
     routes_df = routes.fetch_routes_df()
 
     processed_data = DepartDataProcessor(
-        orders=chunk_df, routes=routes_df).process()
+        orders=chunk_df, routes=routes_df,
+        minimum_location_limit=config.MINIMUM_LOCATION_LIMIT).process()
 
     single_predictor = DepartLogisticReachSinglePredictor(config.DEPART_INTERCEPT, config.DEPART_COEFFICIENTS)
     bulk_predictor = DepartBulkPredictor(processed_data, single_predictor)

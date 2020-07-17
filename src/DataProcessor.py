@@ -91,8 +91,10 @@ class ReachDataProcessor(DataProcessor):
 
 class DepartDataProcessor(DataProcessor):
 
-    def __init__(self, orders: pd.DataFrame, routes: pd.DataFrame):
+    def __init__(self, orders: pd.DataFrame, routes: pd.DataFrame, minimum_location_limit:int):
         self.merged_df = routes.merge(orders, left_on="route_id", right_on="delivery_route_oid", how="inner")
+        self.minimum_location_limit = minimum_location_limit
+
 
     @staticmethod
     def get_movement_info(data: pd.DataFrame):
@@ -134,4 +136,9 @@ class DepartDataProcessor(DataProcessor):
         return data.dropna()
 
     def process(self):
-        return DepartDataProcessor.get_movement_info(self.merged_df)
+        m_df = self.merged_df.copy()
+        counts = m_df.groupby('route_id')['time'].count()
+        filtered_ids = counts[counts >= self.minimum_location_limit].index
+        m_df = m_df[m_df['route_id'].isin(filtered_ids)]
+
+        return DepartDataProcessor.get_movement_info(m_df)
