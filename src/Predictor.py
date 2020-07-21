@@ -50,7 +50,11 @@ class DepartLogisticReachSinglePredictor(SinglePredictor):
             distance_to_warehouse_log: float):
         Z = self.__coefficients[0] * smooth_speed_to_warehouse + self.__coefficients[1] * smooth_speed_to_prev_event + \
             self.__coefficients[2] * distance_to_warehouse_log + self.__intercept
-        output = 1 / (1 + e ** (-Z))
+
+        try:
+            output = 1 / (1 + e ** (-Z))
+        except OverflowError as err:
+            return False
 
         return True if output >= .5 else False
 

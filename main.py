@@ -14,9 +14,9 @@ def main():
     print("Cron started")
 
     if config.TEST:
-        start_date = '2020-06-06'
-        end_date = '2020-06-08'
-        courier_ids = config.COURIER_IDS
+        start_date = '2020-07-19'
+        end_date = '2020-07-21'
+        courier_ids = [] #config.COURIER_IDS
     else:
         start_date, end_date = get_run_params()
         courier_ids = []
@@ -32,7 +32,7 @@ def main():
 
     if config.DEPART_CREATE_TABLE:
         with WRITE_ENGINE.begin() as connection:
-            create_table(connection, config.CREATE_TABLE_QUERY)
+            create_table(connection, config.DEPART_CREATE_TABLE_QUERY)
             grant_access(connection, config.DEPART_TABLE_NAME, config.SCHEMA_NAME)
             print("Depart Table created")
 
@@ -41,34 +41,30 @@ def main():
     total_processed_routes_for_depart = 0
 
     for chunk_df in orders.fetch_orders_df():
+        route_ids = list(chunk_df['delivery_route_oid'].unique())
 
-        processed_reach_orders = reach_main(chunk_df)
-        processed_depart_orders = depart_main(chunk_df)
+        routes = Route(
+            route_ids, ROUTES_COLLECTION, config.TEST, config.test_pickle_file)
+        routes_df = routes.fetch_routes_df()
 
-        total_processed_routes_for_reach += processed_reach_orders
+        #processed_reach_orders = reach_main(chunk_df, routes_df)
+        processed_depart_orders = depart_main(chunk_df, routes_df)
+
+        #total_processed_routes_for_reach += processed_reach_orders
         total_processed_routes_for_depart += processed_depart_orders
 
-        print("Total Processed Routes For Reach : ", total_processed_routes_for_reach)
+        #print("Total Processed Routes For Reach : ", total_processed_routes_for_reach)
         print("Total Processed Routes for Depart: ", total_processed_routes_for_depart)
-        print()
-
 
     with WRITE_ENGINE.begin() as connection:
-        #remove_duplicates(connection, config.REACH_TABLE_NAME, 'prediction_id', ['order_id'], config.SCHEMA_NAME)
+        # remove_duplicates(connection, config.REACH_TABLE_NAME, 'prediction_id', ['order_id'], config.SCHEMA_NAME)
         remove_duplicates(connection, config.DEPART_TABLE_NAME, 'prediction_id', ['order_id'], config.SCHEMA_NAME)
 
     print("Duplicates are removed")
 
 
-def reach_main(chunk_df:pd.DataFrame):
+def reach_main(chunk_df: pd.DataFrame, routes_df: pd.DataFrame):
     order_ids = pd.DataFrame(chunk_df['_id_oid'], columns=['_id_oid'])
-
-    route_ids = list(chunk_df['delivery_route_oid'].unique())
-
-    routes = Route(
-        route_ids, ROUTES_COLLECTION, config.TEST, config.test_pickle_file)
-    routes_df = routes.fetch_routes_df()
-
     processed_data = ReachDataProcessor(
         orders=chunk_df, routes=routes_df, minimum_location_limit=config.MINIMUM_LOCATION_LIMIT,
         fibonacci_base=config.FIBONACCI_BASE).process(include_all=False)
@@ -82,20 +78,11 @@ def reach_main(chunk_df:pd.DataFrame):
                     config.REACH_TABLE_COLUMNS)
     writer.write()
 
-    return len(route_ids)
+    return chunk_df['delivery_route_oid'].nunique()
 
 
-
-
-def depart_main(chunk_df:pd.DataFrame):
+def depart_main(chunk_df: pd.DataFrame, routes_df: pd.DataFrame):
     order_ids = pd.DataFrame(chunk_df['_id_oid'], columns=['_id_oid'])
-
-    route_ids = list(chunk_df['delivery_route_oid'].unique())
-
-    routes = Route(
-        route_ids, ROUTES_COLLECTION, config.TEST, config.test_pickle_file)
-    routes_df = routes.fetch_routes_df()
-
     processed_data = DepartDataProcessor(
         orders=chunk_df, routes=routes_df,
         minimum_location_limit=config.MINIMUM_LOCATION_LIMIT).process()
@@ -109,7 +96,8 @@ def depart_main(chunk_df:pd.DataFrame):
                     config.DEPART_TABLE_COLUMNS)
     writer.write()
 
-    return len(route_ids)
+    return chunk_df['delivery_route_oid'].nunique()
+
 
 if __name__ == '__main__':
     main()

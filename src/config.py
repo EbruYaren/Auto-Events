@@ -1,8 +1,8 @@
 import os
 from datetime import timedelta
-TEST = False
+TEST = True
 REACH_CREATE_TABLE = False
-DEPART_CREATE_TABLE = True
+DEPART_CREATE_TABLE = False
 
 REDSHIFT_ETL_URI = os.environ.get('REDSHIFT_ETL_URI')
 MONGO_CLIENT_URI = os.environ.get('MAIN_DB_URI')
@@ -52,5 +52,20 @@ CREATE TABLE project_auto_events.reach_date_prediction
     predictedat  timestamp default getdate()
 );
 """
+
+
+DEPART_CREATE_TABLE_QUERY = """
+CREATE TABLE project_auto_events.depart_date_prediction
+(
+    prediction_id         BIGINT IDENTITY (0,1) NOT NULL,
+    order_id              varchar(256) sortkey,
+    predicted_depart_date  timestamp,
+    predicted_depart_dateL timestamp,
+    latitude              double precision,
+    longitude             double precision,
+    predictedat  timestamp default getdate()
+);
+"""
+
 
 RUN_INTERVAL = timedelta(hours=1, minutes=30)

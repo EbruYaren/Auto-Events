@@ -11,10 +11,12 @@ class Order:
            deliver_location__coordinates_lon, deliver_location__coordinates_lat,
            reach_location__coordinates_lon, reach_location__coordinates_lat,
            delivery_address_location__coordinates_lon, delivery_address_location__coordinates_lat,
+           warehouse_location__coordinates_lon, warehouse_location__coordinates_lat,
+            first_value(handover_date) over (partition by delivery_job_oid order by delivery_batch_index desc rows unbounded preceding ) handover_date,
            delivery_job_oid,
            delivery_batch_index
         FROM etl_market_order.marketorders o
-        --LEFT JOIN project_auto_events.reach_date_prediction rdp ON rdp.order_id = o._id_oid
+        --LEFT JOIN project_auto_events.depart_date_prediction rdp ON rdp.order_id = o._id_oid
         WHERE status in (900, 1000)
         AND date_add('hour', 3, deliver_date) BETWEEN  '{start_date}' AND  '{end_date}' AND domaintype = 1
         --AND rdp.order_id isnull
