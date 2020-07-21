@@ -14,7 +14,7 @@ def main():
     print("Cron started")
 
     if config.TEST:
-        start_date = '2020-07-19'
+        start_date = '2020-07-01'
         end_date = '2020-07-21'
         courier_ids = [] #config.COURIER_IDS
     else:
@@ -39,8 +39,9 @@ def main():
     orders = Order(start_date, end_date, REDSHIFT_ETL, courier_ids, chunk_size=config.chunk_size)
     total_processed_routes_for_reach = 0
     total_processed_routes_for_depart = 0
-
     for chunk_df in orders.fetch_orders_df():
+        print('in fetch_orders_df')
+
         route_ids = list(chunk_df['delivery_route_oid'].unique())
 
         routes = Route(
