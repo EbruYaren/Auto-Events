@@ -7,7 +7,8 @@ RUN pip3 install boto3==1.10.2 \
                  psycopg2-binary==2.8.4 \
                  pandas==0.25.2 \
                  requests==2.22.0 \
-                 SQLAlchemy==1.3.10
+                 SQLAlchemy==1.3.10 \
+                 matplotlib==3.3.0
 
 ADD requirements.txt .
 RUN pip3 install -r requirements.txt
