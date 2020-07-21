@@ -48,13 +48,13 @@ def main():
             route_ids, ROUTES_COLLECTION, config.TEST, config.test_pickle_file)
         routes_df = routes.fetch_routes_df()
 
-        #processed_reach_orders = reach_main(chunk_df, routes_df)
+        processed_reach_orders = reach_main(chunk_df, routes_df)
         processed_depart_orders = depart_main(chunk_df, routes_df)
 
-        #total_processed_routes_for_reach += processed_reach_orders
+        total_processed_routes_for_reach += processed_reach_orders
         total_processed_routes_for_depart += processed_depart_orders
 
-        #print("Total Processed Routes For Reach : ", total_processed_routes_for_reach)
+        print("Total Processed Routes For Reach : ", total_processed_routes_for_reach)
         print("Total Processed Routes for Depart: ", total_processed_routes_for_depart)
 
     with WRITE_ENGINE.begin() as connection:
