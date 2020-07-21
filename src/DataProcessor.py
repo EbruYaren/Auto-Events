@@ -1,20 +1,11 @@
 import numpy as np
 import pandas as pd
 from math import radians, cos, sin, asin, sqrt, log, e
+import matplotlib.pyplot as plt
+import abc
 
 
-class DataProcessor():
-    fibonacci_series = [0, 1, 2, 3, 5, 8, 13, 21]
-    returning_columns = ['_id_oid', 'delivery_route_oid', 'courier_courier_oid', 'reach_date',
-                         'time', 'distance_bin', 'time_passed_in_bin', 'tbe',
-                         'dbw_reach_client', 'dbw_reach_client_bin', 'lat', 'lon']
-
-    def __init__(self, orders: pd.DataFrame, routes: pd.DataFrame, fibonacci_base, minimum_location_limit):
-
-
-        self.minimum_location_limit = minimum_location_limit
-        self.merged_df = routes.merge(orders, left_on="route_id", right_on="delivery_route_oid", how="inner")
-        self.fibonacci_base = fibonacci_base
+class DataProcessor(abc.ABC):
 
     @staticmethod
     def haversine(lon1, lat1, lon2, lat2):
@@ -32,6 +23,52 @@ class DataProcessor():
         c = 2 * asin(sqrt(a))
         r = 6371  # Radius of earth in kilometers. Use 3956 for miles
         return c * r
+
+    @staticmethod
+    def remove_outliers(df: pd.DataFrame, col_name: str, whisker=1.5):
+        q = df[col_name].quantile([.25, .75])
+        iqr = q[.75] - q[.25]
+        lower_bound = q[.25] - whisker * iqr
+        upper_bound = q[.75] + whisker * iqr
+
+        return df[df[col_name].between(lower_bound, upper_bound)]
+
+    @staticmethod
+    def plot_story(
+            route: pd.DataFrame, story_cols: list, vline_cols=[], figsize=(12, 6),
+            story_linewidth=1, story_markersize=3, vlinewidth=3):
+
+        colors = ['w', 'b', 'y', 'r', 'g', 'gray']
+
+        fig, ax = plt.subplots(figsize=figsize)
+
+        for i, col in enumerate(story_cols):
+            route[col].plot(lw=story_linewidth, marker='o', markersize=story_markersize, c=colors[i], ax=ax, label=col)
+
+        for i, col in enumerate(vline_cols):
+            val = route[col].values[0]
+            label = "{}: {}".format(col, val)
+            ax.axvline(val, c=colors[i + 1], lw=vlinewidth, label=label)
+
+        ax.legend()
+        return fig, ax
+
+    @abc.abstractmethod
+    def process(self):
+        pass
+
+
+class ReachDataProcessor(DataProcessor):
+    fibonacci_series = [0, 1, 2, 3, 5, 8, 13, 21]
+    returning_columns = ['_id_oid', 'delivery_route_oid', 'courier_courier_oid', 'reach_date',
+                         'time', 'distance_bin', 'time_passed_in_bin', 'tbe',
+                         'dbw_reach_client', 'dbw_reach_client_bin', 'lat', 'lon']
+
+    def __init__(self, orders: pd.DataFrame, routes: pd.DataFrame, fibonacci_base, minimum_location_limit):
+
+        self.minimum_location_limit = minimum_location_limit
+        self.merged_df = routes.merge(orders, left_on="route_id", right_on="delivery_route_oid", how="inner")
+        self.fibonacci_base = fibonacci_base
 
     @staticmethod
     def convert_to_seconds(x):
@@ -82,3 +119,58 @@ class DataProcessor():
             return m_df
         else:
             return m_df[self.returning_columns]
+
+
+class DepartDataProcessor(DataProcessor):
+
+    def __init__(self, orders: pd.DataFrame, routes: pd.DataFrame, minimum_location_limit:int):
+        self.merged_df = routes.merge(orders, left_on="route_id", right_on="delivery_route_oid", how="inner")
+        self.minimum_location_limit = minimum_location_limit
+
+
+    @staticmethod
+    def get_movement_info(data: pd.DataFrame):
+        data.sort_values(['_id_oid', 'index'], inplace=True)
+
+        data['tbe'] = data.groupby('_id_oid').apply(
+            lambda route: (route['time'] - route['time'].shift(1)).dt.total_seconds()).droplevel(0)
+
+        data['distance_to_warehouse'] = data.apply(
+            lambda row: DataProcessor.haversine(
+                row['lon'], row['lat'],
+                row['warehouse_location__coordinates_lon'],
+                row['warehouse_location__coordinates_lat']) * 1000,
+            axis='columns')
+
+        data['dist_to_warehouse_diff'] = data.groupby('_id_oid').apply(
+            lambda route: route['distance_to_warehouse'] - route['distance_to_warehouse'].shift(1)).droplevel(0)
+
+        data['speed_to_warehouse'] = data['dist_to_warehouse_diff'] / data['tbe']
+
+        data['prev_lat'] = data.groupby('_id_oid')['lat'].shift(1)
+        data['prev_lon'] = data.groupby('_id_oid')['lon'].shift(1)
+
+        data['distance_to_prev_event'] = data.apply(
+            lambda row: DataProcessor.haversine(
+                row['lon'], row['lat'],
+                row['prev_lon'],
+                row['prev_lat']) * 1000,
+            axis='columns')
+
+        data['speed_to_prev_event'] = data['distance_to_prev_event'] / data['tbe']
+
+        data['smooth_speed_to_warehouse'] = data.groupby('_id_oid')['speed_to_warehouse']\
+            .rolling(3,center=True).mean().droplevel(0)
+        data['smooth_speed_to_prev_event'] = data.groupby('_id_oid')['speed_to_prev_event']\
+            .rolling(3, center=True).mean().droplevel(0)
+        data['dbw_warehouse_log'] = data['distance_to_warehouse'].apply(log)
+
+        return data.dropna()
+
+    def process(self):
+        m_df = self.merged_df.copy()
+        counts = m_df.groupby('route_id')['time'].count()
+        filtered_ids = counts[counts >= self.minimum_location_limit].index
+        m_df = m_df[m_df['route_id'].isin(filtered_ids)]
+
+        return DepartDataProcessor.get_movement_info(m_df)
