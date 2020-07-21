@@ -251,4 +251,4 @@ def get_run_params():
     return parsed.start_date, parsed.end_date
 
 if __name__ == '__main__':
-    print(get_run_dates(interval=timedelta(hours=1)))
+    print(get_run_params())
