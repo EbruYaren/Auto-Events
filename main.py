@@ -28,7 +28,7 @@ def main():
     print("Start date:", start_date)
     print("End date:", end_date)
 
-    if config.REACH_DOMAIN_NAME in domain:
+    if domain == 'reach' or domain == 'depart,reach':
         if config.REACH_CREATE_TABLE:
             with WRITE_ENGINE.begin() as connection:
                 create_table(connection, config.CREATE_TABLE_QUERY)
@@ -36,7 +36,7 @@ def main():
                 print("Reach Table created")
         total_processed_routes_for_reach = 0
 
-    if config.DEPART_DOMAIN_NAME in domain:
+    if domain == 'depart' or domain == 'depart,reach':
         if config.DEPART_CREATE_TABLE:
             with WRITE_ENGINE.begin() as connection:
                 create_table(connection, config.DEPART_CREATE_TABLE_QUERY)
@@ -54,12 +54,12 @@ def main():
             route_ids, ROUTES_COLLECTION, config.TEST, config.test_pickle_file)
         routes_df = routes.fetch_routes_df()
 
-        if config.REACH_DOMAIN_NAME in domain:
+        if domain == 'reach' or domain == 'depart,reach':
             processed_reach_orders = reach_main(chunk_df, routes_df)
             total_processed_routes_for_reach += processed_reach_orders
             print("Total Processed Routes For Reach : ", total_processed_routes_for_reach)
 
-        if config.DEPART_DOMAIN_NAME in domain:
+        if domain == 'depart' or domain == 'depart,reach':
             processed_depart_orders = depart_main(chunk_df, routes_df)
             total_processed_routes_for_depart += processed_depart_orders
             print("Total Processed Routes for Depart: ", total_processed_routes_for_depart)

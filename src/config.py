@@ -70,8 +70,5 @@ CREATE TABLE project_auto_events.depart_date_prediction
 
 RUN_INTERVAL = timedelta(hours=1, minutes=30)
 
-DEPART_DOMAIN_NAME = 'depart'
-REACH_DOMAIN_NAME = 'reach'
-
-DOMAIN_LIST = [DEPART_DOMAIN_NAME, REACH_DOMAIN_NAME]
-DEFAULT_DOMAIN = ','.join(DOMAIN_LIST)
+DOMAIN_LIST = ['depart', 'reach', 'depart,reach']
+DEFAULT_DOMAIN = 'depart,reach'
