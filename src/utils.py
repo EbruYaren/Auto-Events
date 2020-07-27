@@ -246,9 +246,11 @@ def get_run_params():
                         help="Start Date of the time interval of the cron")
     parser.add_argument("-ed", "--end_date", default=str(now),
                         help="End Date of the time interval of the cron")
+    parser.add_argument('-d', '--domain', default=config.DEFAULT_DOMAIN)
     parsed = parser.parse_args()
+    assert parsed.domain in config.DOMAIN_LIST, 'Domain must be one of ' + str(config.DOMAIN_LIST)
 
-    return parsed.start_date, parsed.end_date
+    return parsed
 
 if __name__ == '__main__':
     print(get_run_params())

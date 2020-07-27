@@ -69,3 +69,6 @@ CREATE TABLE project_auto_events.depart_date_prediction
 
 
 RUN_INTERVAL = timedelta(hours=1, minutes=30)
+
+DOMAIN_LIST = ['depart', 'reach', 'depart,reach']
+DEFAULT_DOMAIN = 'depart,reach'
