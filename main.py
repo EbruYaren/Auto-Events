@@ -96,7 +96,7 @@ def depart_main(chunk_df: pd.DataFrame, routes_df: pd.DataFrame):
         minimum_location_limit=config.MINIMUM_LOCATION_LIMIT).process()
 
     single_predictor = DepartLogisticReachSinglePredictor(config.DEPART_INTERCEPT, config.DEPART_COEFFICIENTS)
-    bulk_predictor = DepartBulkPredictor(processed_data, single_predictor)
+    bulk_predictor = DepartBulkPredictor(processed_data, single_predictor, config.MAX_DISTANCE_FOR_DEPART_PREDICTION)
     predictions = bulk_predictor.predict_in_bulk()
     predictions = order_ids.merge(predictions, on='_id_oid', how='left')
 
