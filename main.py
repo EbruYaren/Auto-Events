@@ -4,7 +4,7 @@ from src.Route import Route
 from src.DataProcessor import ReachDataProcessor, DepartDataProcessor
 from src.Predictor import *
 from src.Writer import Writer
-from src import REDSHIFT_ETL, WRITE_ENGINE
+from src import REDSHIFT_ETL, WRITE_ENGINE, ENGINE_BITEST
 from src.utils import timer, get_run_params, get_local_current_time
 from src.data_access import grant_access, create_table, remove_duplicates, drop_table
 
@@ -51,7 +51,7 @@ def main():
         route_ids = list(chunk_df['delivery_route_oid'].unique())
 
         routes = Route(
-            route_ids, ROUTES_COLLECTION, config.TEST, config.test_pickle_file)
+            route_ids, ROUTES_COLLECTION, config.TEST, ENGINE_BITEST)
         routes_df = routes.fetch_routes_df()
 
         if domain == 'reach' or domain == 'depart,reach':

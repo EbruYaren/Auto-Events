@@ -6,6 +6,7 @@ DEPART_CREATE_TABLE = False
 
 REDSHIFT_ETL_URI = os.environ.get('REDSHIFT_ETL_URI')
 MONGO_CLIENT_URI = os.environ.get('MAIN_DB_URI')
+ENGINE_BITEST_URI = os.environ.get('ENGINE_BITEST_URI', default=None)
 ROUTE_OBJECT_COLLETION = None
 
 WRITE_DEV_DB_URI = os.environ.get('DEV_DB_URI')

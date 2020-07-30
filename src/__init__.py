@@ -1,4 +1,4 @@
-from src.config import REDSHIFT_ETL_URI, WRITE_DEV_DB_URI, WRITE_ETL_DB_URI, TEST, MONGO_CLIENT_URI
+from src.config import REDSHIFT_ETL_URI, WRITE_DEV_DB_URI, WRITE_ETL_DB_URI, TEST, MONGO_CLIENT_URI, ENGINE_BITEST_URI
 from sqlalchemy import create_engine
 from pymongo import MongoClient
 import ssl
@@ -25,3 +25,11 @@ try:
 except Exception as e:
     print(e)
     WRITE_ENGINE = None
+
+try:
+    if config.TEST:
+        ENGINE_BITEST = create_engine(ENGINE_BITEST_URI)
+    else:
+        ENGINE_BITEST = None
+except:
+    ENGINE_BITEST = None
