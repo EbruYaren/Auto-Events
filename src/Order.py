@@ -7,6 +7,7 @@ class Order:
            checkoutdatel,
            deliver_date ,
            reach_date,
+           onway_date,
            client_location__coordinates_lon, client_location__coordinates_lat,
            deliver_location__coordinates_lon, deliver_location__coordinates_lat,
            reach_location__coordinates_lon, reach_location__coordinates_lat,
@@ -16,9 +17,9 @@ class Order:
            delivery_job_oid,
            delivery_batch_index
         FROM etl_market_order.marketorders o
-        LEFT JOIN project_auto_events.depart_date_prediction rdp ON rdp.order_id = o._id_oid
+        --LEFT JOIN project_auto_events.depart_date_prediction rdp ON rdp.order_id = o._id_oid
         WHERE status in (900, 1000)
-        AND rdp.order_id isnull
+        --AND rdp.order_id isnull
         AND date_add('hour', 3, deliver_date) BETWEEN  '{start_date}' AND  '{end_date}' 
         AND domaintype in (1,3)
         {courier_filter}
