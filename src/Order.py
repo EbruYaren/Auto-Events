@@ -17,7 +17,7 @@ class Order:
            delivery_batch_index
         FROM etl_market_order.marketorders o
         WHERE status in (900, 1000)
-        AND date_add('hour', 3, deliver_date) BETWEEN  '{start_date}' AND  '{end_date}' AND domaintype in (1,3
+        AND date_add('hour', 3, deliver_date) BETWEEN  '{start_date}' AND  '{end_date}' AND domaintype in (1,3)
         {courier_filter}
     """
 

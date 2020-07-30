@@ -5,12 +5,13 @@ import pickle
 
 class Route:
 
-    def __init__(self, route_id_list: list, collection=None, is_test=False, test_pickle_file=""):
+    def __init__(self, route_id_list: list, collection=None,
+                 is_test=False, engine_bitest=None):
 
         self.__route_id_list = route_id_list
         self.__is_test = is_test
-        self.__test_pickle_file = test_pickle_file
         self.__collection = collection
+        self.__engine_bitest = engine_bitest
 
     @staticmethod
     def _convert_cursor_to_routes_df(cursor):
@@ -29,12 +30,20 @@ class Route:
 
         return pd.DataFrame(all_datas)
 
+    def __get_routes_from_bitest(self):
+        query = \
+        """
+        SELECT *
+        FROM routes_route
+        WHERE route_id in ('{routes}')
+        """.format(routes="','".join(self.__route_id_list))
+
+        return pd.read_sql(query, self.__engine_bitest)
+
     def fetch_routes_df(self):
-        self.__is_test = False
+
         if self.__is_test:
-            with open(self.__test_pickle_file, 'rb') as test_file:
-                cursor = pickle.load(test_file)
-            data = self._convert_cursor_to_routes_df(cursor)
+            data = self.__get_routes_from_bitest()
         else:
             route_ids = self.__route_id_list
             route_ids = list(map(ObjectId, route_ids))
