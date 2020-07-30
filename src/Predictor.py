@@ -61,9 +61,10 @@ class DepartLogisticReachSinglePredictor(SinglePredictor):
 
 class DepartBulkPredictor:
 
-    def __init__(self, processed_data: pd.DataFrame, predictor: SinglePredictor):
+    def __init__(self, processed_data: pd.DataFrame, predictor: SinglePredictor, max_distance_to_warehouse:float):
         self.__processed_data = processed_data
         self.__predictor = predictor
+        self.__max_distance_to_warehouse = max_distance_to_warehouse
 
     def predict_in_bulk(self):
         df = self.__processed_data.copy()
@@ -75,7 +76,9 @@ class DepartBulkPredictor:
                 row['dbw_warehouse_log']
             ), axis='columns')
         df['rn'] = df.groupby('_id_oid')['index'].rank(method='min')  # check if ture
-        true_preds = df[(df['predictions']) & (df['time'] > df['handover_date'])]
+        true_preds = df[(df['predictions']) &
+                        (df['time'] > df['onway_date']) &
+                        (df['distance_to_warehouse'] < self.__max_distance_to_warehouse)]
         true_preds['true_rn'] = true_preds.groupby('_id_oid')['index'].rank(method='min')
         true_preds = true_preds[true_preds['true_rn'] == 1]
         pred_rows = true_preds[['_id_oid', 'rn']]
