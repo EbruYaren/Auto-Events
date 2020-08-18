@@ -15,7 +15,7 @@ def main():
 
     if config.TEST:
         start_date = '2020-07-01'
-        end_date = '2020-07-21'
+        end_date = '2020-07-02'
         domain = config.DEFAULT_DOMAIN
         courier_ids = [] #config.COURIER_IDS
     else:
@@ -48,7 +48,7 @@ def main():
     for chunk_df in orders.fetch_orders_df():
         print('in fetch_orders_df')
 
-        route_ids = list(chunk_df['delivery_route_oid'].unique())
+        route_ids = list(chunk_df['delivery_route_oid'].dropna().unique())
 
         routes = Route(
             route_ids, ROUTES_COLLECTION, config.TEST, ENGINE_BITEST)

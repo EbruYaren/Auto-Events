@@ -56,7 +56,7 @@ class DepartLogisticReachSinglePredictor(SinglePredictor):
         except OverflowError as err:
             return False
 
-        return True if output >= .5 else False
+        return True if output >= .5  else False
 
 
 class DepartBulkPredictor:
@@ -75,10 +75,12 @@ class DepartBulkPredictor:
                 row['smooth_speed_to_prev_event'],
                 row['dbw_warehouse_log']
             ), axis='columns')
-        df['rn'] = df.groupby('_id_oid')['index'].rank(method='min')  # check if ture
+        df['rn'] = df.groupby('_id_oid')['index'].rank(method='min')  # check if true
+        df['prev_time'] = df.groupby('_id_oid')['time'].shift(1)
+        df['prev_distance_to_warehouse'] = df.groupby('_id_oid')['distance_to_warehouse'].shift(1)
         true_preds = df[(df['predictions']) &
-                        (df['time'] > df['onway_date']) &
-                        (df['distance_to_warehouse'] < self.__max_distance_to_warehouse)]
+                        (df['prev_time'] > df['onway_date']) &
+                        (df['prev_distance_to_warehouse'] < self.__max_distance_to_warehouse)]
         true_preds['true_rn'] = true_preds.groupby('_id_oid')['index'].rank(method='min')
         true_preds = true_preds[true_preds['true_rn'] == 1]
         pred_rows = true_preds[['_id_oid', 'rn']]
