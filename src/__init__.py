@@ -1,4 +1,4 @@
-from src.config import REDSHIFT_ETL_URI, WRITE_DEV_DB_URI, WRITE_ETL_DB_URI, TEST, MONGO_CLIENT_URI, ENGINE_BITEST_URI
+from src.config import REDSHIFT_ETL_URI, WRITE_DEV_DB_URI, WRITE_ETL_DB_URI, TEST, MONGO_ROUTES_URI, ENGINE_BITEST_URI
 from sqlalchemy import create_engine
 from pymongo import MongoClient
 import ssl
@@ -9,11 +9,11 @@ except:
     REDSHIFT_ETL = None
 
 try:
-    MONGO_CLIENT = MongoClient(MONGO_CLIENT_URI, ssl_cert_reqs=ssl.CERT_NONE)
+    MONGO_ROUTES = MongoClient(MONGO_ROUTES_URI, ssl_cert_reqs=ssl.CERT_NONE)
 except:
-    MONGO_CLIENT = None
+    MONGO_ROUTES = None
 try:
-    ROUTES_COLLECTION = MONGO_CLIENT.getir.routes
+    ROUTES_COLLECTION = MONGO_ROUTES.get_database().routes
 except:
     ROUTES_COLLECTION = None
 
