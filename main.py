@@ -62,7 +62,7 @@ def main():
         route_ids = list(chunk_df['delivery_route_oid'].dropna().unique())
 
         routes = Route(
-            route_ids, ROUTES_COLLECTION, config.TEST, ENGINE_BITEST)
+            route_ids, ROUTES_COLLECTION, config.TEST, REDSHIFT_ETL)
         routes_df = routes.fetch_routes_df()
 
         if 'reach' in domains:
