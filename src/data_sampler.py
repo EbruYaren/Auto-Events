@@ -1,12 +1,13 @@
 import pandas as pd
 from bson import ObjectId
 
+
 class DataSampler():
     QUERY_TEMPLATE = """SELECT delivery_route_oid, _id_oid, courier_courier_oid,
    checkoutdatel,
    deliver_date ,
    reach_date,
-   client_location__coordinates_lon, client_location__coordinates_lat,
+   delivery_address_location__coordinates_lon, delivery_address_location__coordinates_lat,
    deliver_location__coordinates_lon, deliver_location__coordinates_lat,
    reach_location__coordinates_lon, reach_location__coordinates_lat,
    delivery_address_location__coordinates_lon, delivery_address_location__coordinates_lat

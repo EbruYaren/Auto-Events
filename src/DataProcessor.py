@@ -174,3 +174,57 @@ class DepartDataProcessor(DataProcessor):
         m_df = m_df[m_df['route_id'].isin(filtered_ids)]
 
         return DepartDataProcessor.get_movement_info(m_df)
+
+
+class DepartFromClientDataProcessor(DataProcessor):
+
+    def __init__(self, orders: pd.DataFrame, routes: pd.DataFrame, minimum_location_limit:int):
+        self.merged_df = routes.merge(orders, left_on="route_id", right_on="delivery_route_oid", how="inner")
+        self.minimum_location_limit = minimum_location_limit
+
+    @staticmethod
+    def get_movement_info(data: pd.DataFrame):
+        data.sort_values(['_id_oid', 'index'], inplace=True)
+
+        data['tbe'] = data.groupby('_id_oid').apply(
+            lambda route: (route['time'] - route['time'].shift(1)).dt.total_seconds()).droplevel(0)
+
+        data['distance_to_client'] = data.apply(
+            lambda row: DataProcessor.haversine(
+                row['lon'], row['lat'],
+                row['delivery_address_location__coordinates_lon'],
+                row['delivery_address_location__coordinates_lat']) * 1000,
+            axis='columns')
+
+        data['dist_to_client_diff'] = data.groupby('_id_oid').apply(
+            lambda route: route['distance_to_client'] - route['distance_to_client'].shift(1)).droplevel(0)
+
+        data['speed_to_client'] = data['dist_to_client_diff'] / data['tbe']
+
+        data['prev_lat'] = data.groupby('_id_oid')['lat'].shift(1)
+        data['prev_lon'] = data.groupby('_id_oid')['lon'].shift(1)
+
+        data['distance_to_prev_event'] = data.apply(
+            lambda row: DataProcessor.haversine(
+                row['lon'], row['lat'],
+                row['prev_lon'],
+                row['prev_lat']) * 1000,
+            axis='columns')
+
+        data['speed_to_prev_event'] = data['distance_to_prev_event'] / data['tbe']
+
+        data['smooth_speed_to_client'] = data.groupby('_id_oid')['speed_to_client']\
+            .rolling(3,center=True).mean().droplevel(0)
+        data['smooth_speed_to_prev_event'] = data.groupby('_id_oid')['speed_to_prev_event']\
+            .rolling(3, center=True).mean().droplevel(0)
+        data['dbw_client_log'] = data['distance_to_client'].apply(log)
+
+        return data.dropna()
+
+    def process(self):
+        m_df = self.merged_df.copy()
+        counts = m_df.groupby('route_id')['time'].count()
+        filtered_ids = counts[counts >= self.minimum_location_limit].index
+        m_df = m_df[m_df['route_id'].isin(filtered_ids)]
+
+        return DepartFromClientDataProcessor.get_movement_info(m_df)

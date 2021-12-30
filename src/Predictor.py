@@ -59,6 +59,26 @@ class DepartLogisticReachSinglePredictor(SinglePredictor):
         return True if output >= .5  else False
 
 
+class DepartFromClientLogisticReachSinglePredictor(SinglePredictor):
+
+    def __init__(self, intercept: float, coefficients: list):
+        self.__intercept = intercept
+        self.__coefficients = coefficients
+
+    def predict(
+            self, smooth_speed_to_client: float, smooth_speed_to_prev_event: float,
+            distance_to_client_log: float):
+        Z = self.__coefficients[0] * smooth_speed_to_client + self.__coefficients[1] * smooth_speed_to_prev_event + \
+            self.__coefficients[2] * distance_to_client_log + self.__intercept
+
+        try:
+            output = 1 / (1 + e ** (-Z))
+        except OverflowError as err:
+            return False
+
+        return True if output >= .5 else False
+
+
 class DepartBulkPredictor:
 
     def __init__(self, processed_data: pd.DataFrame, predictor: SinglePredictor, max_distance_to_warehouse:float):
@@ -81,6 +101,39 @@ class DepartBulkPredictor:
         true_preds = df[(df['predictions']) &
                         (df['time'] > df['onway_date']) &
                         (df['prev_distance_to_warehouse'] < self.__max_distance_to_warehouse)]
+        true_preds['true_rn'] = true_preds.groupby('_id_oid')['index'].rank(method='min')
+        true_preds = true_preds[true_preds['true_rn'] == 1]
+        pred_rows = true_preds[['_id_oid', 'rn']]
+        pred_rows['last_false'] = pred_rows['rn'].apply(lambda r: r - 1 if r > 1 else r)
+        pred_rows.drop('rn', axis='columns', inplace=True)
+        df = df.merge(pred_rows, on='_id_oid')
+        labeled_times = df[df['rn'] == df['last_false']][['_id_oid', 'time', 'lat', 'lon']] \
+            .drop_duplicates()
+
+        return labeled_times
+
+
+class DepartFromClientBulkPredictor:
+
+    def __init__(self, processed_data: pd.DataFrame, predictor: SinglePredictor, max_distance_to_client:float):
+        self.__processed_data = processed_data
+        self.__predictor = predictor
+        self.__max_distance_to_client = max_distance_to_client
+
+    def predict_in_bulk(self):
+        df = self.__processed_data.copy()
+
+        df['predictions'] = df.apply(
+            lambda row: self.__predictor.predict(
+                row['smooth_speed_to_client'],
+                row['smooth_speed_to_prev_event'],
+                row['dbw_client_log']
+            ), axis='columns')
+        df['rn'] = df.groupby('_id_oid')['index'].rank(method='min')  # check if true
+        df['prev_distance_to_client'] = df.groupby('_id_oid')['distance_to_client'].shift(1)
+        true_preds = df[(df['predictions']) &
+                        (df['time'] >= df['reach_date']) &
+                        (df['prev_distance_to_client'] < self.__max_distance_to_client)]
         true_preds['true_rn'] = true_preds.groupby('_id_oid')['index'].rank(method='min')
         true_preds = true_preds[true_preds['true_rn'] == 1]
         pred_rows = true_preds[['_id_oid', 'rn']]
