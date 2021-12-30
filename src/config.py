@@ -34,6 +34,7 @@ DEPART_FROM_CLIENT_TABLE_COLUMNS = ['order_id',
                                     'latitude', 'longitude']
 
 SCHEMA_NAME = "public" if TEST else "project_auto_events"
+DB_USER_GROUP = "data_rw" if TEST else "data_general_ro"
 
 test_pickle_file = "rick.pickle"
 chunk_size = 10000
@@ -82,7 +83,7 @@ CREATE TABLE project_auto_events.depart_date_prediction
 
 
 DEPART_FROM_CLIENT_CREATE_TABLE_QUERY = """
-CREATE TABLE project_auto_events.depart_from_client_date_prediction
+CREATE TABLE {schema}.depart_from_client_date_prediction
 (
     prediction_id                       BIGINT IDENTITY (0,1) NOT NULL,
     order_id                            varchar(256) sortkey,
@@ -92,7 +93,7 @@ CREATE TABLE project_auto_events.depart_from_client_date_prediction
     longitude                           double precision,
     predictedat                         timestamp default getdate()
 );
-"""
+""".format(schema=SCHEMA_NAME)
 
 RUN_INTERVAL = timedelta(hours=1, minutes=30)
 

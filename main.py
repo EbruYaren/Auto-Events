@@ -14,8 +14,8 @@ def main():
     print("Cron started")
 
     if config.TEST:
-        start_date = '2020-07-01'
-        end_date = '2020-07-02'
+        start_date = '2021-12-29'
+        end_date = '2021-12-30'
         domain = config.DEFAULT_DOMAIN
         courier_ids = [] #config.COURIER_IDS
     else:
@@ -35,7 +35,7 @@ def main():
         if config.REACH_CREATE_TABLE:
             with WRITE_ENGINE.begin() as connection:
                 create_table(connection, config.CREATE_TABLE_QUERY)
-                grant_access(connection, config.REACH_TABLE_NAME, config.SCHEMA_NAME)
+                grant_access(connection, config.REACH_TABLE_NAME, config.SCHEMA_NAME, config.DB_USER_GROUP)
                 print("Reach Table created")
         total_processed_routes_for_reach = 0
 
@@ -43,7 +43,7 @@ def main():
         if config.DEPART_CREATE_TABLE:
             with WRITE_ENGINE.begin() as connection:
                 create_table(connection, config.DEPART_CREATE_TABLE_QUERY)
-                grant_access(connection, config.DEPART_TABLE_NAME, config.SCHEMA_NAME)
+                grant_access(connection, config.DEPART_TABLE_NAME, config.SCHEMA_NAME, config.DB_USER_GROUP)
                 print("Depart Table created")
         total_processed_routes_for_depart = 0
 
@@ -51,7 +51,7 @@ def main():
         if config.DEPART_FROM_CLIENT_CREATE_TABLE:
             with WRITE_ENGINE.begin() as connection:
                 create_table(connection, config.DEPART_FROM_CLIENT_CREATE_TABLE_QUERY)
-                grant_access(connection, config.DEPART_FROM_CLIENT_TABLE_NAME, config.SCHEMA_NAME)
+                grant_access(connection, config.DEPART_FROM_CLIENT_TABLE_NAME, config.SCHEMA_NAME, config.DB_USER_GROUP)
                 print("Depart From Client Table created")
         total_processed_routes_for_depart_from_client = 0
 
