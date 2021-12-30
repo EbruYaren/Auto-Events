@@ -31,29 +31,27 @@ def main():
     print("End date:", end_date)
     print("Domains:", domains)
 
-    if 'reach' in domains:
-        if config.REACH_CREATE_TABLE:
+    total_processed_routes_for_reach = 0
+    total_processed_routes_for_depart = 0
+    total_processed_routes_for_depart_from_client = 0
+
+    if config.REACH_CREATE_TABLE:
             with WRITE_ENGINE.begin() as connection:
                 create_table(connection, config.CREATE_TABLE_QUERY)
                 grant_access(connection, config.REACH_TABLE_NAME, config.SCHEMA_NAME, config.DB_USER_GROUP)
                 print("Reach Table created")
-        total_processed_routes_for_reach = 0
 
-    if 'depart' in domains:
-        if config.DEPART_CREATE_TABLE:
+    if config.DEPART_CREATE_TABLE:
             with WRITE_ENGINE.begin() as connection:
                 create_table(connection, config.DEPART_CREATE_TABLE_QUERY)
                 grant_access(connection, config.DEPART_TABLE_NAME, config.SCHEMA_NAME, config.DB_USER_GROUP)
                 print("Depart Table created")
-        total_processed_routes_for_depart = 0
 
-    if 'depart_from_client' in domains:
-        if config.DEPART_FROM_CLIENT_CREATE_TABLE:
+    if config.DEPART_FROM_CLIENT_CREATE_TABLE:
             with WRITE_ENGINE.begin() as connection:
                 create_table(connection, config.DEPART_FROM_CLIENT_CREATE_TABLE_QUERY)
                 grant_access(connection, config.DEPART_FROM_CLIENT_TABLE_NAME, config.SCHEMA_NAME, config.DB_USER_GROUP)
                 print("Depart From Client Table created")
-        total_processed_routes_for_depart_from_client = 0
 
     orders = Order(start_date, end_date, REDSHIFT_ETL, courier_ids, chunk_size=config.chunk_size)
     for chunk_df in orders.fetch_orders_df():
