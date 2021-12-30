@@ -84,7 +84,7 @@ class ReachDataProcessor(DataProcessor):
         return round(dist * 1000)
 
     def find_distance_bin(self, distance):
-        assert distance >= 0, 'distance should be positive.'
+        assert distance >= 0, 'distance should be non-negative.'
         for i, f in enumerate(self.fibonacci_series):
             if distance < f * self.fibonacci_base:
                 return i - 1
