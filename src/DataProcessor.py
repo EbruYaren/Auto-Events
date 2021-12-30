@@ -59,7 +59,7 @@ class DataProcessor(abc.ABC):
 
 
 class ReachDataProcessor(DataProcessor):
-    fibonacci_series = [0, 1, 2, 3, 5, 8, 13, 21]
+    unique_fibonacci_numbers = [0, 1, 2, 3, 5, 8, 13, 21]
     returning_columns = ['_id_oid', 'delivery_route_oid', 'courier_courier_oid', 'reach_date',
                          'time', 'distance_bin', 'time_passed_in_bin', 'tbe',
                          'dbw_reach_client', 'dbw_reach_client_bin', 'lat', 'lon']
@@ -85,10 +85,10 @@ class ReachDataProcessor(DataProcessor):
 
     def find_distance_bin(self, distance):
         assert distance >= 0, 'distance should be non-negative.'
-        for i, f in enumerate(self.fibonacci_series):
+        for i, f in enumerate(self.unique_fibonacci_numbers):
             if distance < f * self.fibonacci_base:
                 return i - 1
-        return len(self.fibonacci_series) - 1
+        return len(self.unique_fibonacci_numbers) - 1
 
     def process(self, include_all=False):
 
