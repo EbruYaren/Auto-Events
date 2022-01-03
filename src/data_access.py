@@ -58,11 +58,11 @@ def drop_table(connection, table_name, schema_name='public'):
     return drop_status
 
 
-def grant_access(connection, table_name, schema_name='public'):
+def grant_access(connection, table_name, schema_name='public', group='data_rw'):
     grant_status = True
-    query_temp = 'GRANT SELECT ON TABLE {table} TO PUBLIC;'
+    query_temp = 'GRANT SELECT ON TABLE {table} TO group {group};'
     table = '.'.join([schema_name, table_name])
-    query = query_temp.format(table=table)
+    query = query_temp.format(table=table, group=group)
     try:
         connection.execute(query)
     except Exception as e:
