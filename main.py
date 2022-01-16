@@ -122,10 +122,10 @@ def depart_main(chunk_df: pd.DataFrame, routes_df: pd.DataFrame):
     return chunk_df['delivery_route_oid'].nunique()
 
 
-def depart_from_client_main(chunk_df: pd.DataFrame, routes_df: pd.DataFrame):
+def depart_from_client_main(chunk_df: pd.DataFrame, trajectory_df: pd.DataFrame):
     order_ids = pd.DataFrame(chunk_df['_id_oid'], columns=['_id_oid'])
     processed_data = DepartFromClientDataProcessor(
-        orders=chunk_df, routes=routes_df,
+        orders=chunk_df, trajectories=trajectory_df,
         minimum_location_limit=config.MINIMUM_LOCATION_LIMIT).process()
 
     single_predictor = DepartFromClientLogisticReachSinglePredictor(config.DEPART_FROM_CLIENT_INTERCEPT, config.DEPART_FROM_CLIENT_COEFFICIENTS)

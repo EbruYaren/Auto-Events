@@ -178,8 +178,9 @@ class DepartDataProcessor(DataProcessor):
 
 class DepartFromClientDataProcessor(DataProcessor):
 
-    def __init__(self, orders: pd.DataFrame, routes: pd.DataFrame, minimum_location_limit:int):
-        self.merged_df = routes.merge(orders, left_on="route_id", right_on="delivery_route_oid", how="inner")
+    def __init__(self, orders: pd.DataFrame, trajectories: pd.DataFrame, minimum_location_limit:int):
+        self.merged_df = trajectories.merge(orders, left_on="courier_id", right_on="courier_courier_oid", how="inner")
+        # TODO fix this merge
         self.minimum_location_limit = minimum_location_limit
 
     @staticmethod
