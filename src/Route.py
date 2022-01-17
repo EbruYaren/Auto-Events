@@ -42,7 +42,7 @@ class Route:
                 time       timestamp,
                 acc        double precision
             );
-            copy #routes_route from 's3://getir-data-routes-etl/routes-etl/routes-route-20211229'
+            copy #routes_route from 's3://getir-data-routes-etl/routes-etl/routes-route-20220116'
                 iam_role 'arn:aws:iam::164762854291:role/data-cron-temp-files-role' CSV GZIP ignoreheader 1;
             SELECT *
             FROM #routes_route

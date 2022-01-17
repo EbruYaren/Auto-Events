@@ -14,8 +14,8 @@ def main():
     print("Cron started")
 
     if config.TEST:
-        start_date = '2021-12-29'
-        end_date = '2021-12-30'
+        start_date = '2022-01-16 18:30:00'
+        end_date = '2022-01-16 20:00:00'
         domain = config.DEFAULT_DOMAIN
         courier_ids = [] #config.COURIER_IDS
     else:
@@ -58,6 +58,7 @@ def main():
         print('in fetch_orders_df')
 
         route_ids = list(chunk_df['delivery_route_oid'].dropna().unique())
+        courier_ids = list(chunk_df['courier_courier_oid'].dropna().unique())
 
         routes = Route(
             route_ids, ROUTES_COLLECTION, config.TEST, REDSHIFT_ETL)
@@ -74,7 +75,9 @@ def main():
             print("Total Processed Routes for Depart: ", total_processed_routes_for_depart)
 
         if 'depart_from_client' in domains:
-            processed_depart_from_client_orders = depart_from_client_main(chunk_df, routes_df)
+            from src.CourierTrajectory import CourierTrajectory
+            trajectories = CourierTrajectory(courier_ids, start_date, end_date).fetch()
+            processed_depart_from_client_orders = depart_from_client_main(chunk_df, routes_df, trajectories)
             total_processed_routes_for_depart_from_client += processed_depart_from_client_orders
             print("Total Processed Routes for Depart from Client: ", total_processed_routes_for_depart_from_client)
 
@@ -122,10 +125,10 @@ def depart_main(chunk_df: pd.DataFrame, routes_df: pd.DataFrame):
     return chunk_df['delivery_route_oid'].nunique()
 
 
-def depart_from_client_main(chunk_df: pd.DataFrame, trajectory_df: pd.DataFrame):
+def depart_from_client_main(chunk_df: pd.DataFrame, routes_df: pd.DataFrame, trajectory_df: pd.DataFrame):
     order_ids = pd.DataFrame(chunk_df['_id_oid'], columns=['_id_oid'])
     processed_data = DepartFromClientDataProcessor(
-        orders=chunk_df, trajectories=trajectory_df,
+        orders=chunk_df, routes=routes_df, trajectories=trajectory_df,
         minimum_location_limit=config.MINIMUM_LOCATION_LIMIT).process()
 
     single_predictor = DepartFromClientLogisticReachSinglePredictor(config.DEPART_FROM_CLIENT_INTERCEPT, config.DEPART_FROM_CLIENT_COEFFICIENTS)

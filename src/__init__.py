@@ -10,7 +10,7 @@ except:
     REDSHIFT_ETL = None
 
 try:
-    ATHENA = connect(s3_staging_dir="s3://aws-athena-query-result-164762854291-eu-west-1/")
+    ATHENA = connect(s3_staging_dir="s3://aws-athena-query-result-164762854291-eu-west-1/", profile_name="data-prod")
 except:
     ATHENA = None
 
