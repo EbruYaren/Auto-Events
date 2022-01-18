@@ -239,14 +239,14 @@ class DepartFromClientDataProcessor(DataProcessor):
         job_routes = job_routes[['route_id', 'prev_route_id']].dropna()
         job_routes = job_routes.merge(self.routes, on='route_id').drop(columns='route_id') \
             .rename(columns={'prev_route_id': 'route_id'})
-        job_routes.merge(self.orders, left_on="route_id", right_on="delivery_route_oid", how="inner")
+        job_routes = job_routes.merge(self.orders, left_on="route_id", right_on="delivery_route_oid", how="inner")
         m_df = pd.concat([m_df, job_routes], sort=False)
         m_df = m_df.drop(columns='index')
 
         # Filter by count
         counts = m_df.groupby('route_id')['time'].count()
         filtered_ids = counts[counts >= self.minimum_location_limit].index
-        m_df = m_df[m_df['route_id'].isin(filtered_ids)]
+        m_df = m_df[m_df['route_id'].isin(filtered_ids)].copy()
         print('Route len:', len(counts), 'Filtered:', len(filtered_ids))
 
         return DepartFromClientDataProcessor.get_movement_info(m_df)

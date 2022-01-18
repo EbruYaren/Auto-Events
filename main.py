@@ -63,6 +63,7 @@ def main():
         routes = Route(
             route_ids, ROUTES_COLLECTION, config.TEST, REDSHIFT_ETL)
         routes_df = routes.fetch_routes_df()
+        print('Routes fetched:', len(routes_df))
 
         if 'reach' in domains:
             processed_reach_orders = reach_main(chunk_df, routes_df)
@@ -77,6 +78,7 @@ def main():
         if 'depart_from_client' in domains:
             from src.CourierTrajectory import CourierTrajectory
             trajectories = CourierTrajectory(courier_ids, start_date, end_date).fetch()
+            print('Return trajectories fetched:', len(trajectories))
             processed_depart_from_client_orders = depart_from_client_main(chunk_df, routes_df, trajectories)
             total_processed_routes_for_depart_from_client += processed_depart_from_client_orders
             print("Total Processed Routes for Depart from Client: ", total_processed_routes_for_depart_from_client)
