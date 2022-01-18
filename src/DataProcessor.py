@@ -234,17 +234,19 @@ class DepartFromClientDataProcessor(DataProcessor):
                                                                         right_on="delivery_route_oid", how="inner")
 
         # Add next route into tail
-        courier_routes = m_df.groupby(['courier_courier_oid', 'route_id'])['time'].max().reset_index()
-        courier_routes['prev_route_id'] = courier_routes.groupby('courier_courier_oid')['route_id'].shift()
-        courier_routes = courier_routes[['route_id', 'prev_route_id']].dropna()
-        courier_routes = courier_routes.merge(self.routes, on='route_id').drop(columns='route_id') \
+        job_routes = m_df.groupby(['delivery_job_oid', 'route_id'])['time'].max().reset_index().sort_values(['delivery_job_oid', 'time'])
+        job_routes['prev_route_id'] = job_routes.groupby('delivery_job_oid')['route_id'].shift()
+        job_routes = job_routes[['route_id', 'prev_route_id']].dropna()
+        job_routes = job_routes.merge(self.routes, on='route_id').drop(columns='route_id') \
             .rename(columns={'prev_route_id': 'route_id'})
-        courier_routes.merge(self.orders, left_on="route_id", right_on="delivery_route_oid", how="inner")
-        m_df = pd.concat([m_df, courier_routes], sort=False)
+        job_routes.merge(self.orders, left_on="route_id", right_on="delivery_route_oid", how="inner")
+        m_df = pd.concat([m_df, job_routes], sort=False)
+        m_df = m_df.drop(columns='index')
 
         # Filter by count
         counts = m_df.groupby('route_id')['time'].count()
         filtered_ids = counts[counts >= self.minimum_location_limit].index
         m_df = m_df[m_df['route_id'].isin(filtered_ids)]
+        print('Route len:', len(counts), 'Filtered:', len(filtered_ids))
 
         return DepartFromClientDataProcessor.get_movement_info(m_df)
