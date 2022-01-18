@@ -32,17 +32,17 @@ class CourierTrajectory:
                        lon,
                        CASE WHEN orderid != 'null' THEN orderid END AS order_id
                 FROM logs.event_getir_courier_autoreach
-                WHERE dt BETWEEN %(start)s and %(end)s
-                 and courierid in %(courier_ids)s
+                WHERE dt BETWEEN {start} and {end}
+                 and courierid in {courier_ids}
                 ORDER BY createdat
             )
         )
         WHERE status = 900 and prev_order_id is not null
-        """, ATHENA, params={
-            'courier_ids': self.courier_ids,
+        """.format(**{
+            'courier_ids': str(tuple(self.courier_ids)).replace(',)', ')'),
             'start': '{:%Y-%m-%dT%H-00-00Z}'.format(datetime.datetime.fromisoformat(self.start_date)),
             'end': '{:%Y-%m-%dT%H-00-00Z}'.format(datetime.datetime.fromisoformat(self.end_date)),
-        }, parse_dates=['time'])
+        }), ATHENA, parse_dates=['time'])
         auto_df['time'] = auto_df['time'].apply(lambda x: x.replace(tzinfo=None))
         return auto_df
 

@@ -10,8 +10,7 @@ MONGO_CLIENT_URI = os.environ.get('MAIN_DB_URI')
 MONGO_ROUTES_URI = os.environ.get('MONGO_ROUTES_URI')
 ENGINE_BITEST_URI = os.environ.get('ENGINE_BITEST_URI', default=None)
 ROUTE_OBJECT_COLLETION = None
-print('S3_STAGING_DIR:', os.environ.get('S3_STAGING_DIR'))
-S3_STAGING_DIR = 's3://aws-athena-query-result-164762854291-eu-west-1/'
+S3_STAGING_DIR = os.environ.get('S3_STAGING_DIR', 's3://aws-athena-query-result-164762854291-eu-west-1/')
 
 WRITE_DEV_DB_URI = os.environ.get('DEV_DB_URI')
 WRITE_ETL_DB_URI = os.environ.get('WRITE_ETL_DB_URI')
