@@ -1,4 +1,5 @@
 import datetime
+import traceback
 
 import pandas as pd
 
@@ -47,7 +48,10 @@ class CourierTrajectory:
         return auto_df
 
     def fetch(self):
-
-        data = self.__get_trajectories()
+        try:
+            data = self.__get_trajectories()
+        except:
+            print(traceback.format_exc())
+            data = pd.DataFrame({'_id_oid': []})
 
         return data
