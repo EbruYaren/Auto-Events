@@ -237,8 +237,9 @@ def snake_case_fixer(df):
     df = df.rename(columns=new_columns)
     return df
 
+
 def get_run_params():
-    now = get_local_current_time().replace(minute=0, second=0, microsecond=0)
+    now = datetime.now().replace(minute=0, second=0, microsecond=0)
     start = now - config.RUN_INTERVAL
 
     parser = argparse.ArgumentParser()
@@ -251,6 +252,7 @@ def get_run_params():
     assert parsed.domain in config.DOMAIN_LIST, 'Domain must be one of ' + str(config.DOMAIN_LIST)
 
     return parsed
+
 
 if __name__ == '__main__':
     print(get_run_params())

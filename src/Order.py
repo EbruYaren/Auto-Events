@@ -8,7 +8,7 @@ class Order:
            deliver_date ,
            reach_date,
            onway_date,
-           client_location__coordinates_lon, client_location__coordinates_lat,
+           -- client_location__coordinates_lon, client_location__coordinates_lat,
            deliver_location__coordinates_lon, deliver_location__coordinates_lat,
            reach_location__coordinates_lon, reach_location__coordinates_lat,
            delivery_address_location__coordinates_lon, delivery_address_location__coordinates_lat,
@@ -20,9 +20,10 @@ class Order:
         LEFT JOIN project_auto_events.depart_date_prediction rdp ON rdp.order_id = o._id_oid
         WHERE status in (900, 1000)
         AND rdp.order_id isnull
-        AND date_add('hour', 3, deliver_date) BETWEEN  '{start_date}' AND  '{end_date}' 
+        AND deliver_date BETWEEN  '{start_date}' AND  '{end_date}' 
         AND domaintype in (1,3)
         {courier_filter}
+        ORDER BY courier_courier_oid, deliver_date
     """
 
     def __init__(self, start_date: str, end_date: str, etl_engine: sqlalchemy.engine.base.Engine, courier_ids=[],

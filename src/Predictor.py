@@ -129,12 +129,12 @@ class DepartFromClientBulkPredictor:
                 row['smooth_speed_to_prev_event'],
                 row['dbw_client_log']
             ), axis='columns')
-        df['rn'] = df.groupby('_id_oid')['index'].rank(method='min')  # check if true
+        df['rn'] = df.groupby('_id_oid')['time'].rank(method='min')  # check if true
         df['prev_distance_to_client'] = df.groupby('_id_oid')['distance_to_client'].shift(1)
         true_preds = df[(df['predictions']) &
                         (df['time'] >= df['reach_date']) &
                         (df['prev_distance_to_client'] < self.__max_distance_to_client)]
-        true_preds['true_rn'] = true_preds.groupby('_id_oid')['index'].rank(method='min')
+        true_preds['true_rn'] = true_preds.groupby('_id_oid')['time'].rank(method='min')
         true_preds = true_preds[true_preds['true_rn'] == 1]
         pred_rows = true_preds[['_id_oid', 'rn']]
         pred_rows['last_false'] = pred_rows['rn'].apply(lambda r: r - 1 if r > 1 else r)

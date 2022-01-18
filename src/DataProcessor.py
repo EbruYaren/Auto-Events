@@ -123,10 +123,9 @@ class ReachDataProcessor(DataProcessor):
 
 class DepartDataProcessor(DataProcessor):
 
-    def __init__(self, orders: pd.DataFrame, routes: pd.DataFrame, minimum_location_limit:int):
+    def __init__(self, orders: pd.DataFrame, routes: pd.DataFrame, minimum_location_limit: int):
         self.merged_df = routes.merge(orders, left_on="route_id", right_on="delivery_route_oid", how="inner")
         self.minimum_location_limit = minimum_location_limit
-
 
     @staticmethod
     def get_movement_info(data: pd.DataFrame):
@@ -159,9 +158,9 @@ class DepartDataProcessor(DataProcessor):
 
         data['speed_to_prev_event'] = data['distance_to_prev_event'] / data['tbe']
 
-        data['smooth_speed_to_warehouse'] = data.groupby('_id_oid')['speed_to_warehouse']\
-            .rolling(3,center=True).mean().droplevel(0)
-        data['smooth_speed_to_prev_event'] = data.groupby('_id_oid')['speed_to_prev_event']\
+        data['smooth_speed_to_warehouse'] = data.groupby('_id_oid')['speed_to_warehouse'] \
+            .rolling(3, center=True).mean().droplevel(0)
+        data['smooth_speed_to_prev_event'] = data.groupby('_id_oid')['speed_to_prev_event'] \
             .rolling(3, center=True).mean().droplevel(0)
         data['dbw_warehouse_log'] = data['distance_to_warehouse'].apply(log)
 
@@ -178,13 +177,16 @@ class DepartDataProcessor(DataProcessor):
 
 class DepartFromClientDataProcessor(DataProcessor):
 
-    def __init__(self, orders: pd.DataFrame, routes: pd.DataFrame, minimum_location_limit:int):
-        self.merged_df = routes.merge(orders, left_on="route_id", right_on="delivery_route_oid", how="inner")
+    def __init__(self, orders: pd.DataFrame, routes: pd.DataFrame, trajectories: pd.DataFrame,
+                 minimum_location_limit: int):
+        self.trajectories = trajectories
+        self.routes = routes
+        self.orders = orders
         self.minimum_location_limit = minimum_location_limit
 
     @staticmethod
     def get_movement_info(data: pd.DataFrame):
-        data.sort_values(['_id_oid', 'index'], inplace=True)
+        data.sort_values(['_id_oid', 'time'], inplace=True)
 
         data['tbe'] = data.groupby('_id_oid').apply(
             lambda route: (route['time'] - route['time'].shift(1)).dt.total_seconds()).droplevel(0)
@@ -222,9 +224,29 @@ class DepartFromClientDataProcessor(DataProcessor):
         return data.dropna()
 
     def process(self):
-        m_df = self.merged_df.copy()
+        oid_route = self.orders.set_index('_id_oid')['delivery_route_oid'].to_dict()
+        trajectories = self.trajectories[self.trajectories['_id_oid'].isin(oid_route)].copy()
+        trajectories['route_id'] = trajectories['_id_oid'].replace(oid_route)
+        trajectories = trajectories.drop(columns=['_id_oid'])
+
+        # Add returning logs
+        m_df = pd.concat([self.routes, trajectories], sort=False).merge(self.orders, left_on="route_id",
+                                                                        right_on="delivery_route_oid", how="inner")
+
+        # Add next route into tail
+        job_routes = m_df.groupby(['delivery_job_oid', 'route_id'])['time'].max().reset_index().sort_values(['delivery_job_oid', 'time'])
+        job_routes['prev_route_id'] = job_routes.groupby('delivery_job_oid')['route_id'].shift()
+        job_routes = job_routes[['route_id', 'prev_route_id']].dropna()
+        job_routes = job_routes.merge(self.routes, on='route_id').drop(columns='route_id') \
+            .rename(columns={'prev_route_id': 'route_id'})
+        job_routes = job_routes.merge(self.orders, left_on="route_id", right_on="delivery_route_oid", how="inner")
+        m_df = pd.concat([m_df, job_routes], sort=False)
+        m_df = m_df.drop(columns='index')
+
+        # Filter by count
         counts = m_df.groupby('route_id')['time'].count()
         filtered_ids = counts[counts >= self.minimum_location_limit].index
-        m_df = m_df[m_df['route_id'].isin(filtered_ids)]
+        m_df = m_df[m_df['route_id'].isin(filtered_ids)].copy()
+        print('Route len:', len(counts), 'Filtered:', len(filtered_ids))
 
         return DepartFromClientDataProcessor.get_movement_info(m_df)
