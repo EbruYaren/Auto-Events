@@ -32,7 +32,7 @@ class CourierTrajectory:
                        lon,
                        CASE WHEN orderid != 'null' THEN orderid END AS order_id
                 FROM logs.event_getir_courier_autoreach
-                WHERE dt BETWEEN {start} and {end}
+                WHERE dt BETWEEN '{start}' and '{end}'
                  and courierid in {courier_ids}
                 ORDER BY createdat
             )

@@ -38,7 +38,7 @@ SCHEMA_NAME = "public" if TEST else "project_auto_events"
 DB_USER_GROUP = "data_rw" if TEST else "data_general_ro"
 
 test_pickle_file = "rick.pickle"
-chunk_size = 10000
+chunk_size = 5000
 
 
 REACH_INTERCEPT = -0.414
