@@ -1,8 +1,9 @@
 from src.config import REDSHIFT_ETL_URI, WRITE_DEV_DB_URI, WRITE_ETL_DB_URI, TEST, MONGO_ROUTES_URI, ENGINE_BITEST_URI
 from sqlalchemy import create_engine
 from pymongo import MongoClient
-from pyathena import connect
+from pyathena import connect, __version__
 import ssl
+print('ATHENA Version:', __version__)
 
 try:
     REDSHIFT_ETL = create_engine(REDSHIFT_ETL_URI)

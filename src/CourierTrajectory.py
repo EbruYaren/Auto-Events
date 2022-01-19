@@ -2,6 +2,7 @@ import datetime
 import traceback
 
 import pandas as pd
+print('PANDAS Version:', pd.__version__)
 
 
 class CourierTrajectory:
@@ -14,6 +15,9 @@ class CourierTrajectory:
 
     def __get_trajectories(self):
         from src import ATHENA
+        cursor = ATHENA.cursor()
+        cursor.execute("select * from logs.fraud_detector_event_logs limit 1")
+        print('TEST ATHENA:', cursor.fetchall())
         auto_df = pd.read_sql("""
         SELECT acc,
                "time",
@@ -43,8 +47,8 @@ class CourierTrajectory:
             'courier_ids': str(tuple(self.courier_ids)).replace(',)', ')'),
             'start': '{:%Y-%m-%dT%H-00-00Z}'.format(datetime.datetime.fromisoformat(self.start_date)),
             'end': '{:%Y-%m-%dT%H-00-00Z}'.format(datetime.datetime.fromisoformat(self.end_date)),
-        }), ATHENA, parse_dates=['time'])
-        auto_df['time'] = auto_df['time'].apply(lambda x: x.replace(tzinfo=None))
+        }), ATHENA)
+        auto_df['time'] = pd.to_datetime(auto_df['time']).apply(lambda x: x.replace(tzinfo=None))
         return auto_df
 
     def fetch(self):
