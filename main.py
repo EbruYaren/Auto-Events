@@ -53,7 +53,7 @@ def main():
                 grant_access(connection, config.DEPART_FROM_CLIENT_TABLE_NAME, config.SCHEMA_NAME, config.DB_USER_GROUP)
                 print("Depart From Client Table created")
 
-    orders = Order(start_date, end_date, REDSHIFT_ETL, courier_ids, chunk_size=config.chunk_size)
+    orders = Order(start_date, end_date, REDSHIFT_ETL, courier_ids, chunk_size=config.chunk_size, domains=domains)
     for chunk_df in orders.fetch_orders_df():
         print('in fetch_orders_df')
 

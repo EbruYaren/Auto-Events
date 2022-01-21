@@ -17,9 +17,9 @@ class Order:
            delivery_job_oid,
            delivery_batch_index
         FROM etl_market_order.marketorders o
-        LEFT JOIN project_auto_events.depart_from_client_date_prediction rdp ON rdp.order_id = o._id_oid
+        LEFT JOIN project_auto_events.{prediction_table} rdp ON rdp.order_id = o._id_oid
         WHERE status in (900, 1000)
-        AND rdp.order_id isnull
+        {null_filter}
         AND deliver_date BETWEEN  '{start_date}' AND  '{end_date}' 
         AND domaintype in (1,3)
         {courier_filter}
@@ -27,13 +27,14 @@ class Order:
     """
 
     def __init__(self, start_date: str, end_date: str, etl_engine: sqlalchemy.engine.base.Engine, courier_ids=[],
-                 chunk_size=1000):
+                 chunk_size=1000, domains=None):
 
         self.__start_date = start_date
         self.__end_date = end_date
         self.__etl_engine = etl_engine
         self.__courier_ids = courier_ids
         self.__chunk_size = chunk_size
+        self.__domains = domains
 
     def _create_in_clause(self, id_s: list):
         if len(id_s) == 0:
@@ -43,6 +44,15 @@ class Order:
         return "(" + ','.join(ids) + ")"
 
     def _query_formatter(self):
+        if self.__domains == ['depart_from_client']:
+            # run for if no prediction
+            prediction_table = 'depart_from_client_date_prediction'
+            null_filter = "AND rdp.predicted_depart_from_client_date isnull"
+        else:
+            # run for first time rows
+            prediction_table = 'depart_from_client_date_prediction'
+            null_filter = "AND rdp.order_id isnull"
+
         if len(self.__courier_ids) == 0:
             courier_filter = ''
         else:
@@ -51,7 +61,9 @@ class Order:
 
         return self.QUERY_TEMPLATE.format(start_date=self.__start_date,
                                           end_date=self.__end_date,
-                                          courier_filter=courier_filter)
+                                          courier_filter=courier_filter,
+                                          prediction_table=prediction_table,
+                                          null_filter=null_filter)
 
     def fetch_orders_df(self):
         query = self._query_formatter()
