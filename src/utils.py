@@ -254,5 +254,15 @@ def get_run_params():
     return parsed
 
 
+def get_date_pairs(start: str, end: str, interval=timedelta(hours=1)):
+    start = datetime.fromisoformat(start)
+    end = datetime.fromisoformat(end)
+    dates = []
+    while start < end:
+        dates.append([str(start), str(start + interval)])
+        start += interval
+    return dates
+
+
 if __name__ == '__main__':
     print(get_run_params())

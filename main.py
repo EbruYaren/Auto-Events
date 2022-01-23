@@ -5,7 +5,7 @@ from src.DataProcessor import ReachDataProcessor, DepartDataProcessor, DepartFro
 from src.Predictor import *
 from src.Writer import Writer
 from src import REDSHIFT_ETL, WRITE_ENGINE, ENGINE_BITEST
-from src.utils import timer, get_run_params, get_local_current_time
+from src.utils import timer, get_run_params, get_date_pairs
 from src.data_access import grant_access, create_table, remove_duplicates, drop_table
 
 
@@ -27,6 +27,12 @@ def main():
 
     domains = domain.split(',')
 
+    for pair in get_date_pairs(start_date, end_date):
+        start, end = pair
+        run(start, end, domains, courier_ids)
+
+
+def run(start_date: str, end_date: str, domains: list, courier_ids: list):
     print("Start date:", start_date)
     print("End date:", end_date)
     print("Domains:", domains)
