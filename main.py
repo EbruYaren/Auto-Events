@@ -116,17 +116,17 @@ def get_routes_and_process(chunk_df, domains, domain_type, start_date, end_date)
         print("Total Processed Routes for Depart from Client: ", total_processed_routes_for_depart_from_client)
 
 
-with WRITE_ENGINE.begin() as connection:
-    remove_duplicates(connection, config.REACH_TABLE_NAME, 'prediction_id', ['order_id'], config.SCHEMA_NAME)
-    remove_duplicates(connection, config.DEPART_TABLE_NAME, 'prediction_id', ['order_id'], config.SCHEMA_NAME)
-    remove_duplicates(connection, config.DEPART_FROM_CLIENT_TABLE_NAME, 'prediction_id', ['order_id'],
-                      config.SCHEMA_NAME)
-    remove_duplicates(connection, config.REACH_TO_SHOP_TABLE_NAME, 'prediction_id', ['order_id'],
-                      config.SCHEMA_NAME)
-    remove_duplicates(connection, config.REACH_TO_RESTAURANT_TABLE_NAME, 'prediction_id', ['order_id'],
-                      config.SCHEMA_NAME)
+    with WRITE_ENGINE.begin() as connection:
+        remove_duplicates(connection, config.REACH_TABLE_NAME, 'prediction_id', ['order_id'], config.SCHEMA_NAME)
+        remove_duplicates(connection, config.DEPART_TABLE_NAME, 'prediction_id', ['order_id'], config.SCHEMA_NAME)
+        remove_duplicates(connection, config.DEPART_FROM_CLIENT_TABLE_NAME, 'prediction_id', ['order_id'],
+                          config.SCHEMA_NAME)
+        remove_duplicates(connection, config.REACH_TO_SHOP_TABLE_NAME, 'prediction_id', ['order_id'],
+                          config.SCHEMA_NAME)
+        remove_duplicates(connection, config.REACH_TO_RESTAURANT_TABLE_NAME, 'prediction_id', ['order_id'],
+                          config.SCHEMA_NAME)
 
-print("Duplicates are removed")
+    print("Duplicates are removed")
 
 
 def reach_main(chunk_df: pd.DataFrame, routes_df: pd.DataFrame, domain_type):
