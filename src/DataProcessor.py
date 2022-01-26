@@ -250,3 +250,69 @@ class DepartFromClientDataProcessor(DataProcessor):
         print('Route len:', len(counts), 'Filtered:', len(filtered_ids))
 
         return DepartFromClientDataProcessor.get_movement_info(m_df)
+
+
+
+class ReachToMerchantDataProcessor(DataProcessor):
+    unique_fibonacci_numbers = [0, 1, 2, 3, 5, 8, 13, 21]
+    returning_columns = ['_id_oid', 'delivery_route_oid', 'courier_courier_oid', 'reach_date',
+                         'time', 'distance_bin', 'time_passed_in_bin', 'tbe',
+                         'dbw_reach_client', 'dbw_reach_client_bin', 'lat', 'lon']
+
+    def __init__(self, orders: pd.DataFrame, routes: pd.DataFrame, fibonacci_base, minimum_location_limit,
+                 domain_type: int):
+
+        self.minimum_location_limit = minimum_location_limit
+        self.merged_df = routes.merge(orders, left_on="route_id", right_on="delivery_route_oid", how="inner")
+        self.fibonacci_base = fibonacci_base
+        self.domain_type = domain_type
+
+    @staticmethod
+    def convert_to_seconds(x):
+        try:
+            return round(x.seconds)
+        except:
+            return np.nan
+
+    def haversine_apply(self, row):
+        dist = self.haversine(row['lon'], row['lat'],
+                              row['restaurantloc_lon'],
+                              row['restaurantloc_lat'])
+        return round(dist * 1000)
+
+    def find_distance_bin(self, distance):
+        assert distance >= 0, 'distance should be non-negative.'
+        for i, f in enumerate(self.unique_fibonacci_numbers):
+            if distance < f * self.fibonacci_base:
+                return i - 1
+        return len(self.unique_fibonacci_numbers) - 1
+
+    def process(self, include_all=False):
+
+        m_df = self.merged_df
+        counts = m_df.groupby('route_id')['time'].count()
+        filtered_ids = counts[counts >= self.minimum_location_limit].index
+        m_df = m_df[m_df['route_id'].isin(filtered_ids)]
+        m_df['distance'] = m_df.apply(lambda r: self.haversine_apply(r), axis=1)
+        m_df['distance_bin'] = m_df['distance'].apply(self.find_distance_bin)
+        m_df['first_location_time'] = m_df.groupby(['delivery_route_oid'])['time'].transform(np.min)
+        m_df['last_location_time'] = m_df.groupby(['delivery_route_oid'])['time'].transform(np.max)
+        m_df['next_location_time'] = m_df.sort_values(['delivery_route_oid', 'time']).groupby(['delivery_route_oid'])[
+            'time'].shift(-1)
+        m_df['tbe'] = (m_df['next_location_time'] - m_df['time']).apply(self.convert_to_seconds).fillna(0)
+        m_df['previous_distance_bin'] = \
+            m_df.sort_values(['delivery_route_oid', 'time']).groupby(['delivery_route_oid'])['distance_bin'].shift(1)
+        m_df['is_distance_bin_changed'] = m_df['distance_bin'] != m_df['previous_distance_bin']
+        m_df['distance_bin_group'] = m_df.sort_values(['delivery_route_oid', 'time']).groupby(['delivery_route_oid'])[
+            'is_distance_bin_changed'].cumsum()
+        m_df['time_passed_in_bin'] = m_df.sort_values(['delivery_route_oid', 'distance_bin_group', 'time']).groupby(
+            ['delivery_route_oid', 'distance_bin_group'])['tbe'].cumsum()
+        m_df['dbw_reach_client'] = m_df.apply(lambda x: self.haversine(x['lon'], x['lat'],
+                                                                       x['reached_to_restaurant_lon'],
+                                                                       x['reached_to_restaurant_lat']) * 1000,
+                                              axis=1)
+        m_df['dbw_reach_client_bin'] = m_df['dbw_reach_client'].apply(self.find_distance_bin)
+        if include_all:
+            return m_df
+        else:
+            return m_df[self.returning_columns]

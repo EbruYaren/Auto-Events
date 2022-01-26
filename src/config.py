@@ -4,6 +4,8 @@ TEST = False
 REACH_CREATE_TABLE = False
 DEPART_CREATE_TABLE = False
 DEPART_FROM_CLIENT_CREATE_TABLE = False
+REACH_TO_SHOP_TABLE = False
+REACH_TO_RESTAURANT_TABLE = False
 
 REDSHIFT_ETL_URI = os.environ.get('REDSHIFT_ETL_URI')
 MONGO_CLIENT_URI = os.environ.get('MAIN_DB_URI')
@@ -20,6 +22,18 @@ REACH_TABLE_COLUMNS = ['order_id',
                      'predicted_reach_date',
                      'predicted_reach_dateL',
                      'latitude', 'longitude']
+
+REACH_TO_SHOP_TABLE_NAME = "reach_to_shop_date_prediction"
+REACH_TO_SHOP_TABLE_COLUMNS = ['order_id',
+                               'predicted_reach_date',
+                               'predicted_reach_dateL',
+                               'latitude', 'longitude']
+
+REACH_TO_RESTAURANT_TABLE_NAME = "reach_to_restaurant_date_prediction"
+REACH_TO_RESTAURANT_TABLE_COLUMNS = ['order_id',
+                                     'predicted_reach_date',
+                                     'predicted_reach_dateL',
+                                     'latitude', 'longitude']
 
 
 DEPART_TABLE_NAME = "depart_date_prediction"
@@ -68,6 +82,32 @@ CREATE TABLE project_auto_events.reach_date_prediction
 );
 """
 
+
+CREATE_REACH_TO_SHOP_TABLE_QUERY = """
+CREATE TABLE project_auto_events.reach_to_shop_date_prediction
+(
+    prediction_id         BIGINT IDENTITY (0,1) NOT NULL,
+    order_id              varchar(256) sortkey,
+    predicted_reach_date  timestamp,
+    predicted_reach_dateL timestamp,
+    latitude              double precision,
+    longitude             double precision,
+    predictedat  timestamp default getdate()
+);
+"""
+
+CREATE_REACH_TO_RESTAURANT_TABLE_QUERY = """
+CREATE TABLE project_auto_events.reach_to_restaurant_date_prediction
+(
+    prediction_id         BIGINT IDENTITY (0,1) NOT NULL,
+    order_id              varchar(256) sortkey,
+    predicted_reach_date  timestamp,
+    predicted_reach_dateL timestamp,
+    latitude              double precision,
+    longitude             double precision,
+    predictedat  timestamp default getdate()
+);
+"""
 
 DEPART_CREATE_TABLE_QUERY = """
 CREATE TABLE project_auto_events.depart_date_prediction
