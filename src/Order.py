@@ -111,15 +111,21 @@ class Order:
         if self.__domain_type in (1, 3):
             return self.QUERY_TEMPLATE.format(start_date=self.__start_date,
                                               end_date=self.__end_date,
-                                              courier_filter=courier_filter)
+                                              courier_filter=courier_filter,
+                                              prediction_table=prediction_table,
+                                              null_filter=null_filter)
         elif self.__domain_type == 2:
             return self.QUERY_TEMPLATE_FOOD.format(start_date=self.__start_date,
                                                    end_date=self.__end_date,
-                                                   courier_filter=courier_filter)
+                                                   courier_filter=courier_filter,
+                                                   #                                       prediction_table=prediction_table,
+                                                   null_filter=null_filter)
         elif self.__domain_type == 6:
             return self.QUERY_TEMPLATE_ARTISAN.format(start_date=self.__start_date,
                                                       end_date=self.__end_date,
-                                                      courier_filter=courier_filter)
+                                                      courier_filter=courier_filter,
+                                                      #                                          prediction_table=prediction_table,
+                                                      null_filter=null_filter)
 
     def fetch_orders_df(self):
         query = self._query_formatter()
