@@ -86,6 +86,7 @@ def get_routes_and_process(chunk_df, domains, domain_type, start_date, end_date)
     total_processed_routes_for_reach = 0
     total_processed_routes_for_depart = 0
     total_processed_routes_for_depart_from_client = 0
+    total_processed_routes_for_reach_to_merchant = 0
 
     print('in fetch_orders_df')
 
@@ -98,7 +99,7 @@ def get_routes_and_process(chunk_df, domains, domain_type, start_date, end_date)
     print('Routes fetched:', len(routes_df))
 
     if 'reach' in domains:
-        processed_reach_orders = reach_main(chunk_df, routes_df, domain_type)
+        processed_reach_orders = reach_main(chunk_df, routes_df)
         total_processed_routes_for_reach += processed_reach_orders
         print("Total Processed Routes For Reach : ", total_processed_routes_for_reach)
 
@@ -115,6 +116,11 @@ def get_routes_and_process(chunk_df, domains, domain_type, start_date, end_date)
         total_processed_routes_for_depart_from_client += processed_depart_from_client_orders
         print("Total Processed Routes for Depart from Client: ", total_processed_routes_for_depart_from_client)
 
+    if 'reach_to_merchant' in domains:
+        processed_reach_to_merchant_orders = reach_to_merchant_main(chunk_df, routes_df, domain_type)
+        total_processed_routes_for_reach_to_merchant += processed_reach_to_merchant_orders
+        print("Total Processed Routes For Reach To Merchant : ", total_processed_routes_for_reach_to_merchant)
+
 
     with WRITE_ENGINE.begin() as connection:
         remove_duplicates(connection, config.REACH_TABLE_NAME, 'prediction_id', ['order_id'], config.SCHEMA_NAME)
@@ -129,15 +135,27 @@ def get_routes_and_process(chunk_df, domains, domain_type, start_date, end_date)
     print("Duplicates are removed")
 
 
-def reach_main(chunk_df: pd.DataFrame, routes_df: pd.DataFrame, domain_type):
+def reach_main(chunk_df: pd.DataFrame, routes_df: pd.DataFrame):
     order_ids = pd.DataFrame(chunk_df['_id_oid'], columns=['_id_oid'])
-    if domain_type == 1:
-        processed_data = ReachDataProcessor(
-            orders=chunk_df, routes=routes_df, minimum_location_limit=config.MINIMUM_LOCATION_LIMIT,
-            fibonacci_base=config.FIBONACCI_BASE).process(include_all=False)
+    processed_data = ReachDataProcessor(orders=chunk_df, routes=routes_df,
+                                        minimum_location_limit=config.MINIMUM_LOCATION_LIMIT,
+                                        fibonacci_base=config.FIBONACCI_BASE).process(include_all=False)
 
-    elif domain_type in (2, 6):
-        processed_data = ReachToMerchantDataProcessor(
+    single_predictor = ReachLogisticReachSinglePredictor(config.REACH_INTERCEPT, config.REACH_COEFFICIENTS)
+    bulk_predictor = ReachBulkPredictor(processed_data, single_predictor)
+    predictions = bulk_predictor.predict_in_bulk()
+    predictions = order_ids.merge(predictions, on='_id_oid', how='left')
+
+    writer = Writer(predictions, WRITE_ENGINE, config.REACH_TABLE_NAME, config.SCHEMA_NAME,
+                    config.REACH_TABLE_COLUMNS)
+    writer.write()
+
+    return chunk_df['delivery_route_oid'].nunique()
+
+
+def reach_to_merchant_main(chunk_df: pd.DataFrame, routes_df: pd.DataFrame, domain_type):
+    order_ids = pd.DataFrame(chunk_df['_id_oid'], columns=['_id_oid'])
+    processed_data = ReachToMerchantDataProcessor(
             orders=chunk_df, routes=routes_df, minimum_location_limit=config.MINIMUM_LOCATION_LIMIT,
             fibonacci_base=config.FIBONACCI_BASE, domain_type=domain_type).process(include_all=False)
 
@@ -148,10 +166,8 @@ def reach_main(chunk_df: pd.DataFrame, routes_df: pd.DataFrame, domain_type):
 
     table_name = ""
     table_columns = []
-    if domain_type == 1:
-        table_name = config.REACH_TABLE_NAME
-        table_columns = config.REACH_TABLE_COLUMNS
-    elif domain_type == 2:
+
+    if domain_type == 2:
         table_name = config.REACH_TO_RESTAURANT_TABLE_NAME
         table_columns = config.REACH_TO_RESTAURANT_TABLE_COLUMNS
     elif domain_type == 6:
