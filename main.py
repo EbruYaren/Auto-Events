@@ -45,13 +45,13 @@ def run(start_date: str, end_date: str, domains: list, courier_ids: list):
             print("Reach Table created")
 
     if config.REACH_TO_SHOP_TABLE:
-        with WRITE_ENGINE.cursor() as connection:
+        with WRITE_ENGINE.begin() as connection:
             create_table(connection, config.CREATE_REACH_TO_SHOP_TABLE_QUERY)
             grant_access(connection, config.REACH_TO_SHOP_TABLE_NAME, config.SCHEMA_NAME, config.DB_USER_GROUP)
             print("Reach To Shop table created")
 
     if config.REACH_TO_RESTAURANT_TABLE:
-        with WRITE_ENGINE.cursor() as connection:
+        with WRITE_ENGINE.begin() as connection:
             create_table(connection, config.CREATE_REACH_TO_RESTAURANT_TABLE_QUERY)
             grant_access(connection, config.REACH_TO_RESTAURANT_TABLE_NAME, config.SCHEMA_NAME, config.DB_USER_GROUP)
             print("Reach To Restaurant table created")
