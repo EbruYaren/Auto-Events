@@ -4,8 +4,9 @@ TEST = False
 REACH_CREATE_TABLE = False
 DEPART_CREATE_TABLE = False
 DEPART_FROM_CLIENT_CREATE_TABLE = False
-REACH_TO_SHOP_TABLE = False
-REACH_TO_RESTAURANT_TABLE = False
+REACH_TO_SHOP_TABLE = True
+REACH_TO_RESTAURANT_TABLE = True
+
 
 REDSHIFT_ETL_URI = os.environ.get('REDSHIFT_ETL_URI')
 MONGO_CLIENT_URI = os.environ.get('MAIN_DB_URI')
@@ -84,7 +85,7 @@ CREATE TABLE project_auto_events.reach_date_prediction
 
 
 CREATE_REACH_TO_SHOP_TABLE_QUERY = """
-CREATE TABLE project_auto_events.reach_to_shop_date_prediction
+CREATE TABLE if not exists {schema}.reach_to_shop_date_prediction
 (
     prediction_id         BIGINT IDENTITY (0,1) NOT NULL,
     order_id              varchar(256) sortkey,
@@ -94,10 +95,10 @@ CREATE TABLE project_auto_events.reach_to_shop_date_prediction
     longitude             double precision,
     predictedat  timestamp default getdate()
 );
-"""
+""".format(schema=SCHEMA_NAME)
 
 CREATE_REACH_TO_RESTAURANT_TABLE_QUERY = """
-CREATE TABLE project_auto_events.reach_to_restaurant_date_prediction
+CREATE TABLE if not exists {schema}.reach_to_restaurant_date_prediction
 (
     prediction_id         BIGINT IDENTITY (0,1) NOT NULL,
     order_id              varchar(256) sortkey,
@@ -107,7 +108,7 @@ CREATE TABLE project_auto_events.reach_to_restaurant_date_prediction
     longitude             double precision,
     predictedat  timestamp default getdate()
 );
-"""
+""".format(schema=SCHEMA_NAME)
 
 DEPART_CREATE_TABLE_QUERY = """
 CREATE TABLE project_auto_events.depart_date_prediction
