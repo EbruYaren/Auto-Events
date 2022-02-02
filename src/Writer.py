@@ -2,6 +2,7 @@ import pandas as pd
 from datetime import timedelta
 import src.config
 
+
 class Writer:
 
     def __init__(self, predictions: pd.DataFrame, engine, table_name, schema_name, table_cols):
@@ -15,7 +16,6 @@ class Writer:
         self.__predictions['time_l'] = self.__predictions['time'] + timedelta(hours=3)
         self.__predictions = self.__predictions[['_id_oid', 'time', 'time_l', 'lat', 'lon']]
         self.__predictions.columns = self.__table_columns
-
 
     def write(self):
         self.__prepare_columns()

@@ -26,8 +26,56 @@ class Order:
         ORDER BY courier_courier_oid, deliver_date
     """
 
+    # getting food orders
+    QUERY_TEMPLATE_FOOD = """select f.route_oid as delivery_route_oid, f._id_oid, f.courier_oid as courier_courier_oid, 
+                               f.checkoutdatel, f.deliverdate as deliver_date, f.reachdate as reach_date, f.handoverdate, 
+                               f.deliveryaddress_location__coordinates_lon, f.deliveryaddress_location__coordinates_lat, f.restaurantloc_lon, f.restaurantloc_lat,
+                               l.reached_to_restaurant_lat, l.reached_to_restaurant_lon, l.reached_to_restaurant_createdatl, l.reached_to_client_lat,
+                               l.reached_to_client_lon, l.reached_to_client_createdatl, 2 as domaintype
+                        from etl_food_order.foodorders f
+                        LEFT JOIN (select  data_foodorder as artisan_order_id,
+                                           MAX(case when data_method = 'courierReachedToRestaurant' then location__coordinates_lat end) as reached_to_restaurant_lat,
+                                           MAX(case when data_method = 'courierReachedToRestaurant' then createdatl end) as reached_to_restaurant_createdatl,
+                                           MAX(case when data_method = 'courierReachedToRestaurant' then location__coordinates_lon end) as reached_to_restaurant_lon,
+                                           MAX(case when data_method = 'courierReachedToClient' then location__coordinates_lat end) as reached_to_client_lat,
+                                           MAX(case when data_method = 'courierReachedToClient' then location__coordinates_lon end) as reached_to_client_lon,
+                                           MAX(case when data_method = 'courierReachedToClient' then createdatl end) as reached_to_client_createdatl
+                                    from etl_getir_logs.courierstatuslogs
+                                    where data_foodorder is not null and data_foodorder <> 'null'
+                                    group by data_foodorder) l ON f._id_oid = l.artisan_order_id
+                        LEFT JOIN project_auto_events.depart_date_prediction rdp ON rdp.order_id = f._id_oid
+                                WHERE f.status in (900, 1000)
+                                AND rdp.order_id isnull
+                                AND dateadd('hour', 3, deliverdate) BETWEEN  '{start_date}' AND  '{end_date}'
+                                 {courier_filter}
+                """
+    # getting artisan orders
+    QUERY_TEMPLATE_ARTISAN = """select f.route_oid as delivery_route_oid, f._id_oid, f.courier_oid as courier_courier_oid,
+                                    f.checkoutdatel, f.deliverdate as deliver_date, f.reachdate as reach_date, f.handoverdate,
+                                    f.deliveryaddress_location__coordinates_lon, f.deliveryaddress_location__coordinates_lat,
+                                    f.restaurantloc_lon, f.restaurantloc_lat,
+                                    l.reached_to_restaurant_lat, l.reached_to_restaurant_lon, l.reached_to_restaurant_createdatl, l.reached_to_client_lat, 
+                                    l.reached_to_client_lon, l.reached_to_client_createdatl, 6 as domaintype
+                                    from etl_artisan_order.foodorders f
+                                    LEFT JOIN (select  data_foodorder as artisan_order_id,
+                                                       MAX(case when data_method = 'courierReachedToRestaurant' then location__coordinates_lat end) as reached_to_restaurant_lat,
+                                                       MAX(case when data_method = 'courierReachedToRestaurant' then createdatl end) as reached_to_restaurant_createdatl,
+                                                       MAX(case when data_method = 'courierReachedToRestaurant' then location__coordinates_lon end) as reached_to_restaurant_lon,
+                                                       MAX(case when data_method = 'courierReachedToClient' then location__coordinates_lat end) as reached_to_client_lat,
+                                                       MAX(case when data_method = 'courierReachedToClient' then location__coordinates_lon end) as reached_to_client_lon,
+                                                       MAX(case when data_method = 'courierReachedToClient' then createdatl end) as reached_to_client_createdatl
+                                                from etl_getir_logs.courierstatuslogs
+                                                where data_foodorder is not null and data_foodorder <> 'null'
+                                                group by data_foodorder) l ON f._id_oid = l.artisan_order_id
+                                    LEFT JOIN project_auto_events.depart_date_prediction rdp ON rdp.order_id = f._id_oid
+                                            WHERE f.status in (900, 1000)
+                                            AND rdp.order_id isnull
+                                            AND dateadd('hour', 3, deliverdate) BETWEEN  '{start_date}' AND  '{end_date}'
+                                             {courier_filter}
+                """
+
     def __init__(self, start_date: str, end_date: str, etl_engine: sqlalchemy.engine.base.Engine, courier_ids=[],
-                 chunk_size=1000, domains=None):
+                 chunk_size=1000, domains=None, domain_type=int):
 
         self.__start_date = start_date
         self.__end_date = end_date
@@ -35,6 +83,7 @@ class Order:
         self.__courier_ids = courier_ids
         self.__chunk_size = chunk_size
         self.__domains = domains
+        self.__domain_type = domain_type
 
     def _create_in_clause(self, id_s: list):
         if len(id_s) == 0:
@@ -59,11 +108,24 @@ class Order:
             in_clause = self._create_in_clause(self.__courier_ids)
             courier_filter = 'AND courier_courier_oid IN {}'.format(in_clause)
 
-        return self.QUERY_TEMPLATE.format(start_date=self.__start_date,
-                                          end_date=self.__end_date,
-                                          courier_filter=courier_filter,
-                                          prediction_table=prediction_table,
-                                          null_filter=null_filter)
+        if self.__domain_type in (1, 3):
+            return self.QUERY_TEMPLATE.format(start_date=self.__start_date,
+                                              end_date=self.__end_date,
+                                              courier_filter=courier_filter,
+                                              prediction_table=prediction_table,
+                                              null_filter=null_filter)
+        elif self.__domain_type == 2:
+            return self.QUERY_TEMPLATE_FOOD.format(start_date=self.__start_date,
+                                                   end_date=self.__end_date,
+                                                   courier_filter=courier_filter,
+                                                   #                                       prediction_table=prediction_table,
+                                                   null_filter=null_filter)
+        elif self.__domain_type == 6:
+            return self.QUERY_TEMPLATE_ARTISAN.format(start_date=self.__start_date,
+                                                      end_date=self.__end_date,
+                                                      courier_filter=courier_filter,
+                                                      #                                          prediction_table=prediction_table,
+                                                      null_filter=null_filter)
 
     def fetch_orders_df(self):
         query = self._query_formatter()
