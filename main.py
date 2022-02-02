@@ -70,16 +70,15 @@ def run(start_date: str, end_date: str, domains: list, courier_ids: list):
 
     orders = Order(start_date, end_date, REDSHIFT_ETL, courier_ids, chunk_size=config.chunk_size, domains=domains,
                    domain_type=1)
-    food_orders = Order(start_date, end_date, REDSHIFT_ETL, courier_ids, chunk_size=config.chunk_size, domain_type=2)
-    artisan_orders = Order(start_date, end_date, REDSHIFT_ETL, courier_ids, chunk_size=config.chunk_size,
-                           domain_type=6)
-
+    #food_orders = Order(start_date, end_date, REDSHIFT_ETL, courier_ids, chunk_size=config.chunk_size, domain_type=2)
+    #artisan_orders = Order(start_date, end_date, REDSHIFT_ETL, courier_ids, chunk_size=config.chunk_size,
+    #                     domain_type=6)
+    #for chunk_df in artisan_orders.fetch_orders_df():
+    #    get_routes_and_process(chunk_df, domains, 6, start_date, end_date)
     for chunk_df in orders.fetch_orders_df():
         get_routes_and_process(chunk_df, domains, 1, start_date, end_date)
-    for chunk_df in artisan_orders.fetch_orders_df():
-        get_routes_and_process(chunk_df, domains, 6, start_date, end_date)
-    for chunk_df in food_orders.fetch_orders_df():
-        get_routes_and_process(chunk_df, domains, 2, start_date, end_date)
+    #for chunk_df in food_orders.fetch_orders_df():
+    #    get_routes_and_process(chunk_df, domains, 2, start_date, end_date)
 
 
 def get_routes_and_process(chunk_df, domains, domain_type, start_date, end_date):
@@ -127,10 +126,10 @@ def get_routes_and_process(chunk_df, domains, domain_type, start_date, end_date)
         remove_duplicates(connection, config.DEPART_TABLE_NAME, 'prediction_id', ['order_id'], config.SCHEMA_NAME)
         remove_duplicates(connection, config.DEPART_FROM_CLIENT_TABLE_NAME, 'prediction_id', ['order_id'],
                           config.SCHEMA_NAME)
-        remove_duplicates(connection, config.REACH_TO_SHOP_TABLE_NAME, 'prediction_id', ['order_id'],
-                          config.SCHEMA_NAME)
-        remove_duplicates(connection, config.REACH_TO_RESTAURANT_TABLE_NAME, 'prediction_id', ['order_id'],
-                          config.SCHEMA_NAME)
+        #remove_duplicates(connection, config.REACH_TO_SHOP_TABLE_NAME, 'prediction_id', ['order_id'],
+        #                  config.SCHEMA_NAME)
+        #remove_duplicates(connection, config.REACH_TO_RESTAURANT_TABLE_NAME, 'prediction_id', ['order_id'],
+        #                  config.SCHEMA_NAME)
 
     print("Duplicates are removed")
 
