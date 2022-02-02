@@ -141,4 +141,4 @@ RUN_INTERVAL = timedelta(hours=1, minutes=30)
 
 DOMAIN_LIST = ['depart', 'reach', 'depart,reach', 'depart_from_client', 'depart,reach,depart_from_client',
                'reach_to_merchant']
-DEFAULT_DOMAIN = 'depart,reach,depart_from_client,reach_to_merchant'
+DEFAULT_DOMAIN = 'depart,reach,depart_from_client,reach_to_merchant,reach_to_merchant'
