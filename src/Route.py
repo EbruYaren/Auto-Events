@@ -81,7 +81,7 @@ def decode(data):
 
     lat_lons = df.apply(lambda x: pd.DataFrame({
             'route_id': route_id,
-            'time': [start_time + datetime.timedelta(seconds=t / 20) for t in x['timeList']],
+            'time': [start_time + datetime.timedelta(seconds=t / 20) for t in x['timeList'] if t is not None],
             'lat': [r[0] for r in x['decoded_routes']],
             'lon': [r[1] for r in x['decoded_routes']],
         }), axis=1)
@@ -90,10 +90,11 @@ def decode(data):
     for self in lat_lons:
         if len(self) > 0:
             route_id = self['route_id'][0]
-            for i in self.index:
-                if route_id is not None and self['time'][i] is not None and self['lat'][i] is not None and \
-                        self['lon'][i] is not None:
-                    dict = {'route_id': route_id, 'time': self['time'][i], 'lat': self['lat'][i],
-                            'lon': self['lon'][i]}
-                    rows.append(dict)
+            if route_id is not None:
+                for i in self.index:
+                    if self['time'][i] is not None and self['lat'][i] is not None and \
+                            self['lon'][i] is not None:
+                        dict = {'route_id': route_id, 'time': self['time'][i], 'lat': self['lat'][i],
+                                'lon': self['lon'][i]}
+                        rows.append(dict)
     return rows
