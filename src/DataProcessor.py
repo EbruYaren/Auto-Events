@@ -294,7 +294,7 @@ class ReachToMerchantDataProcessor(DataProcessor):
         filtered_ids = counts[counts >= self.minimum_location_limit].index
         m_df = m_df[m_df['route_id'].isin(filtered_ids)]
         m_df['distance'] = m_df.apply(lambda r: self.haversine_apply(r), axis=1)
-        m_df['distance_bin'] = m_df['distance'].apply(self.find_distance_bin)
+        m_df['distance_bin'] = m_df.distance.apply(self.find_distance_bin)
         m_df['first_location_time'] = m_df.groupby(['delivery_route_oid'])['time'].transform(np.min)
         m_df['last_location_time'] = m_df.groupby(['delivery_route_oid'])['time'].transform(np.max)
         m_df['next_location_time'] = m_df.sort_values(['delivery_route_oid', 'time']).groupby(['delivery_route_oid'])[
@@ -311,7 +311,7 @@ class ReachToMerchantDataProcessor(DataProcessor):
                                                                        x['reached_to_restaurant_lon'],
                                                                        x['reached_to_restaurant_lat']) * 1000,
                                               axis=1)
-        m_df['dbw_reach_client_bin'] = m_df['dbw_reach_client'].apply(self.find_distance_bin)
+        m_df['dbw_reach_client_bin'] = m_df.apply(lambda x: np.nan if pd.isna(x['dbw_reach_client']) else self.find_distance_bin(x.dbw_reach_client), axis=1)
         if include_all:
             return m_df
         else:
