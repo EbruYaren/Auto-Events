@@ -70,31 +70,28 @@ class Route:
 
         return data
 
+
 # decoding encoded route data
 def decode(data):
-    filtered_data = {key: data[key] for key in data.keys() & {'encoded', 'times'}}
-    df = pd.DataFrame([filtered_data])
+    """
+    :type data: dict
+    :rtype: list of dict
+    """
     route_id = str(data.get('_id'))
     start_time = data.get('startTime')
-    df['decoded_routes'] = df.encoded.apply(polyline.decode, precision=7)
-    df['timeList'] = df.times.apply(lambda x: [int(i, 36) for i in x.split(";") if i != ''])
+    decoded_routes = polyline.decode(data['encoded'], precision=7)
+    time_list = [int(i, 36) for i in data['times'].split(";") if i != '']
+    time_list = [start_time + datetime.timedelta(seconds=t / 20) for t in time_list if t is not None]
 
-    lat_lons = df.apply(lambda x: pd.DataFrame({
-            'route_id': route_id,
-            'time': [start_time + datetime.timedelta(seconds=t / 20) for t in x['timeList'] if t is not None],
-            'lat': [r[0] for r in x['decoded_routes']],
-            'lon': [r[1] for r in x['decoded_routes']],
-        }), axis=1)
     rows = []
     # appending rows
-    for self in lat_lons:
-        if len(self) > 0:
-            route_id = self['route_id'][0]
-            if route_id is not None:
-                for i in self.index:
-                    if self['time'][i] is not None and self['lat'][i] is not None and \
-                            self['lon'][i] is not None:
-                        dict = {'route_id': route_id, 'time': self['time'][i], 'lat': self['lat'][i],
-                                'lon': self['lon'][i]}
-                        rows.append(dict)
+    for t, r in zip(time_list, decoded_routes):
+        rows.append({
+            'route_id': route_id,
+            'time': t,
+            'lat': r[0],
+            'lon': r[1],
+        })
+    # or simpler: [dict(route_id=route_id, time=t, lat=r[0], lon=r[1]) for t, r in zip(time_list, decoded_routes)]
+
     return rows
