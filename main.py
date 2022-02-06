@@ -74,8 +74,8 @@ def run(start_date: str, end_date: str, domains: list, courier_ids: list):
     artisan_orders = Order(start_date, end_date, REDSHIFT_ETL, courier_ids, chunk_size=config.chunk_size,
                            domain_type=6)
 
-    for chunk_df in orders.fetch_orders_df():
-        get_routes_and_process(chunk_df, domains, 1, start_date, end_date)
+    # for chunk_df in orders.fetch_orders_df():
+    #     get_routes_and_process(chunk_df, domains, 1, start_date, end_date)
     for chunk_df in food_orders.fetch_orders_df():
         get_routes_and_process(chunk_df, domains, 2, start_date, end_date)
     for chunk_df in artisan_orders.fetch_orders_df():
@@ -88,9 +88,6 @@ def get_routes_and_process(chunk_df, domains, domain_type, start_date, end_date)
     total_processed_routes_for_reach_to_merchant = 0
 
     print('in fetch_orders_df. Shape:', chunk_df.shape)
-
-    print('NA column counts:', chunk_df.isna().sum()[chunk_df.isna().sum().gt(0)].to_dict())
-    chunk_df = chunk_df[chunk_df['delivery_route_oid'].notna()].copy()
 
     route_ids = list(chunk_df['delivery_route_oid'].dropna().unique())
     courier_ids = list(chunk_df['courier_courier_oid'].dropna().unique())
@@ -156,6 +153,9 @@ def reach_main(chunk_df: pd.DataFrame, routes_df: pd.DataFrame):
 
 
 def reach_to_merchant_main(chunk_df: pd.DataFrame, routes_df: pd.DataFrame, domain_type):
+    print('Length:', len(chunk_df), 'NA column counts:', chunk_df.isna().sum()[chunk_df.isna().sum().gt(0)].to_dict())
+    chunk_df = chunk_df[chunk_df['delivery_route_oid'].notna()].copy()
+
     order_ids = pd.DataFrame(chunk_df['_id_oid'], columns=['_id_oid'])
     processed_data = ReachToMerchantDataProcessor(
             orders=chunk_df, routes=routes_df, minimum_location_limit=config.MINIMUM_LOCATION_LIMIT,
