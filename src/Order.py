@@ -46,7 +46,7 @@ class Order:
                         LEFT JOIN project_auto_events.reach_to_restaurant_date_prediction rdp ON rdp.order_id = f._id_oid
                                 WHERE f.status in (900, 1000)
                                 AND rdp.order_id isnull
-                                AND dateadd('hour', 3, deliverdate) BETWEEN  '{start_date}' AND  '{end_date}'
+                                AND f.deliverdate BETWEEN  '{start_date}' AND  '{end_date}'
                                  {courier_filter}
                 """
     # getting artisan orders
@@ -70,7 +70,7 @@ class Order:
                                     LEFT JOIN project_auto_events.reach_to_shop_date_prediction rdp ON rdp.order_id = f._id_oid
                                             WHERE f.status in (900, 1000)
                                             AND rdp.order_id isnull
-                                            AND dateadd('hour', 3, deliverdate) BETWEEN  '{start_date}' AND  '{end_date}'
+                                            AND f.deliverdate BETWEEN  '{start_date}' AND  '{end_date}'
                                              {courier_filter}
                 """
 
