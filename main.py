@@ -87,7 +87,10 @@ def get_routes_and_process(chunk_df, domains, domain_type, start_date, end_date)
     total_processed_routes_for_depart_from_client = 0
     total_processed_routes_for_reach_to_merchant = 0
 
-    print('in fetch_orders_df')
+    print('in fetch_orders_df. Shape:', chunk_df.shape)
+
+    print('NA column counts:', chunk_df.isna().sum()[chunk_df.isna().sum().gt(0)].to_dict())
+    chunk_df = chunk_df[chunk_df['delivery_route_oid'].notna()].copy()
 
     route_ids = list(chunk_df['delivery_route_oid'].dropna().unique())
     courier_ids = list(chunk_df['courier_courier_oid'].dropna().unique())
