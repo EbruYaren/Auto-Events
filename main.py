@@ -74,8 +74,8 @@ def run(start_date: str, end_date: str, domains: list, courier_ids: list):
     artisan_orders = Order(start_date, end_date, REDSHIFT_ETL, courier_ids, chunk_size=config.chunk_size,
                            domain_type=6)
 
-    # for chunk_df in orders.fetch_orders_df():
-    #     get_routes_and_process(chunk_df, domains, 1, start_date, end_date)
+    for chunk_df in orders.fetch_orders_df():
+        get_routes_and_process(chunk_df, domains, 1, start_date, end_date)
     for chunk_df in food_orders.fetch_orders_df():
         get_routes_and_process(chunk_df, domains, 2, start_date, end_date)
     for chunk_df in artisan_orders.fetch_orders_df():
@@ -87,38 +87,43 @@ def get_routes_and_process(chunk_df, domains, domain_type, start_date, end_date)
     total_processed_routes_for_depart_from_client = 0
     total_processed_routes_for_reach_to_merchant = 0
 
+    # Added to eliminate orders with no route, because of in case of orders (chunk_df) have no
+    # route_id (delivery_route_id), in DataProcessor it gets error while merging with routes.
+    chunk_df = chunk_df[chunk_df.delivery_route_oid.notna()]
     print('in fetch_orders_df. Shape:', chunk_df.shape)
 
-    route_ids = list(chunk_df['delivery_route_oid'].dropna().unique())
-    courier_ids = list(chunk_df['courier_courier_oid'].dropna().unique())
+    if chunk_df.size > 0:
 
-    routes = Route(
-        route_ids, ROUTES_COLLECTION, config.TEST, REDSHIFT_ETL)
-    routes_df = routes.fetch_routes_df()
-    print('Routes fetched:', len(routes_df))
+        route_ids = list(chunk_df['delivery_route_oid'].dropna().unique())
+        courier_ids = list(chunk_df['courier_courier_oid'].dropna().unique())
 
-    if 'reach' in domains and domain_type not in (2, 6):
-        processed_reach_orders = reach_main(chunk_df, routes_df)
-        total_processed_routes_for_reach += processed_reach_orders
-        print("Total Processed Routes For Reach : ", total_processed_routes_for_reach)
+        routes = Route(
+            route_ids, ROUTES_COLLECTION, config.TEST, REDSHIFT_ETL)
+        routes_df = routes.fetch_routes_df()
+        print('Routes fetched:', len(routes_df))
 
-    if 'depart' in domains and domain_type not in (2, 6):
-        processed_depart_orders = depart_main(chunk_df, routes_df)
-        total_processed_routes_for_depart += processed_depart_orders
-        print("Total Processed Routes for Depart: ", total_processed_routes_for_depart)
+        if 'reach' in domains and domain_type not in (2, 6):
+            processed_reach_orders = reach_main(chunk_df, routes_df)
+            total_processed_routes_for_reach += processed_reach_orders
+            print("Total Processed Routes For Reach : ", total_processed_routes_for_reach)
 
-    if 'depart_from_client' in domains and domain_type not in (2, 6):
-        from src.CourierTrajectory import CourierTrajectory
-        trajectories = CourierTrajectory(courier_ids, start_date, end_date).fetch()
-        print('Return trajectories fetched:', len(trajectories))
-        processed_depart_from_client_orders = depart_from_client_main(chunk_df, routes_df, trajectories)
-        total_processed_routes_for_depart_from_client += processed_depart_from_client_orders
-        print("Total Processed Routes for Depart from Client: ", total_processed_routes_for_depart_from_client)
+        if 'depart' in domains and domain_type not in (2, 6):
+            processed_depart_orders = depart_main(chunk_df, routes_df)
+            total_processed_routes_for_depart += processed_depart_orders
+            print("Total Processed Routes for Depart: ", total_processed_routes_for_depart)
 
-    if 'reach_to_merchant' in domains and domain_type in (2, 6):
-        processed_reach_to_merchant_orders = reach_to_merchant_main(chunk_df, routes_df, domain_type)
-        total_processed_routes_for_reach_to_merchant += processed_reach_to_merchant_orders
-        print("Total Processed Routes For Reach To Merchant : ", total_processed_routes_for_reach_to_merchant)
+        if 'depart_from_client' in domains and domain_type not in (2, 6):
+            from src.CourierTrajectory import CourierTrajectory
+            trajectories = CourierTrajectory(courier_ids, start_date, end_date).fetch()
+            print('Return trajectories fetched:', len(trajectories))
+            processed_depart_from_client_orders = depart_from_client_main(chunk_df, routes_df, trajectories)
+            total_processed_routes_for_depart_from_client += processed_depart_from_client_orders
+            print("Total Processed Routes for Depart from Client: ", total_processed_routes_for_depart_from_client)
+
+        if 'reach_to_merchant' in domains and domain_type in (2, 6):
+            processed_reach_to_merchant_orders = reach_to_merchant_main(chunk_df, routes_df, domain_type)
+            total_processed_routes_for_reach_to_merchant += processed_reach_to_merchant_orders
+            print("Total Processed Routes For Reach To Merchant : ", total_processed_routes_for_reach_to_merchant)
 
 
     with WRITE_ENGINE.begin() as connection:
