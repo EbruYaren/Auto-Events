@@ -116,7 +116,7 @@ class DepartBulkPredictor:
         return labeled_times.append(batched_unpredicted_rows)
 
     def get_unpredicted_batched_orders(self, predictions):
-        # Getting processes data before prediction process and group by _id_oid to eliminate multiple routes
+        # Getting processed data before prediction process and group by _id_oid to eliminate multiple routes
         data = self.__processed_data.groupby(['_id_oid']).max().reset_index()
         # Merging predicted and processed data on _id_oid  to get unpredicted batched orders
         df = data.merge(predictions, left_on="_id_oid", right_on="_id_oid", how="left")
