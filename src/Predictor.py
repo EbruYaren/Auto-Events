@@ -110,7 +110,38 @@ class DepartBulkPredictor:
         labeled_times = df[df['rn'] == df['last_false']][['_id_oid', 'time', 'lat', 'lon']] \
             .drop_duplicates()
 
-        return labeled_times
+        # Getting unpredicted batched orders data
+        batched_unpredicted_rows = self.get_unpredicted_batched_orders(labeled_times)
+        # Appending unpredicted batched data to predictions
+        return labeled_times.append(batched_unpredicted_rows).reset_index(drop=True)
+
+    def get_unpredicted_batched_orders(self, predictions):
+        # Getting processed data before prediction process and group by _id_oid to eliminate multiple routes
+        data = self.__processed_data.groupby(['_id_oid']).max().reset_index()
+        # Merging predicted and processed data on _id_oid  to get unpredicted batched orders
+        df = data.merge(predictions, left_on="_id_oid", right_on="_id_oid", how="left")
+        rows = []
+        # For each delivery_job_oid in orders:
+        for delivery_job_oid, row in df.groupby('delivery_job_oid'):
+            # Getting first batch
+            first_row = row.loc[row['delivery_batch_index'] == 1]
+            # If first batch was predicted:
+            if any(first_row.time_y.notna()):
+                # Getting unpredicted batches after first batch
+                batches = row[(row['delivery_batch_index'] > 1) & (row['time_y'].isna())]
+                batches = batches.reset_index(drop=True)
+                if batches.size > 0:
+                    # For each unpredicted batch, first batch data is being appended to rows.
+                    for (i, r) in batches.iterrows():
+                        rows.append({
+                            '_id_oid': r._id_oid,
+                            'time': first_row['time_y'].values[0],
+                            'lat': first_row['lat_y'].values[0],
+                            'lon': first_row['lon_y'].values[0],
+                        })
+
+        rows = pd.DataFrame(rows)
+        return rows
 
 
 class DepartFromClientBulkPredictor:
