@@ -113,7 +113,7 @@ class DepartBulkPredictor:
         # Getting unpredicted batched orders data
         batched_unpredicted_rows = self.get_unpredicted_batched_orders(labeled_times)
         # Appending unpredicted batched data to predictions
-        return labeled_times.append(batched_unpredicted_rows)
+        return labeled_times.append(batched_unpredicted_rows).reset_index(drop=True)
 
     def get_unpredicted_batched_orders(self, predictions):
         # Getting processed data before prediction process and group by _id_oid to eliminate multiple routes
@@ -131,7 +131,7 @@ class DepartBulkPredictor:
                 batches = row[(row['delivery_batch_index'] > 1) & (row['time_y'].isna())]
                 batches = batches.reset_index(drop=True)
                 if batches.size > 0:
-                    # For each unpredicted batch, first batch data is appending to rows.
+                    # For each unpredicted batch, first batch data is being appended to rows.
                     for (i, r) in batches.iterrows():
                         rows.append({
                             '_id_oid': r._id_oid,
