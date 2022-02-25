@@ -112,7 +112,7 @@ def get_routes_and_process(chunk_df, domains, domain_type, start_date, end_date)
         depart_from_client_predictions = []
 
         if 'reach' in domains and domain_type not in (2, 6):
-            processed_reach_orders = reach_main(chunk_df, routes_df)
+            processed_reach_orders = reach_main(chunk_df, routes_df).get('routes')
             total_processed_routes_for_reach += processed_reach_orders
             reach_predictions = reach_main(chunk_df, routes_df).get('preds')
             orders = chunk_df[['_id_oid', 'deliver_location__coordinates_lon', 'deliver_location__coordinates_lat']]
