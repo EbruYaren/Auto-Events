@@ -92,6 +92,7 @@ def get_routes_and_process(chunk_df, domains, domain_type, start_date, end_date)
     total_processed_routes_for_depart = 0
     total_processed_routes_for_depart_from_client = 0
     total_processed_routes_for_reach_to_merchant = 0
+    total_processed_routes_for_delivery = 0
 
     # Added to eliminate orders with no route, because of in case of orders (chunk_df) have no
     # route_id (delivery_route_id), in DataProcessor it gets error while merging with routes.
@@ -140,7 +141,9 @@ def get_routes_and_process(chunk_df, domains, domain_type, start_date, end_date)
             print("Total Processed Routes For Reach To Merchant : ", total_processed_routes_for_reach_to_merchant)
 
         if 'deliver' in domains and domain_type not in (2, 6):
-            deliver_main(reach_predictions, depart_from_client_predictions)
+            result_dict = deliver_main(reach_predictions, depart_from_client_predictions)
+            total_processed_routes_for_delivery += result_dict.get('routes')
+            print("Total Processed Routes For Delivery : ", total_processed_routes_for_delivery)
 
     with WRITE_ENGINE.begin() as connection:
         remove_duplicates(connection, config.REACH_TABLE_NAME, 'prediction_id', ['order_id'], config.SCHEMA_NAME)
@@ -267,8 +270,12 @@ def deliver_main(reach_df: pd.DataFrame, depart_from_client_df: pd.DataFrame):
                     config.DELIVERY_TABLE_COLUMNS)
     writer.write()
 
-    return chunk_df['delivery_route_oid'].nunique()
+    dict = {
+        'preds': delivery_predictions,
+        'routes': delivery_predictions['delivery_route_oid'].nunique()
+    }
 
+    return dict
 
 if __name__ == '__main__':
     main()
