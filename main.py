@@ -92,7 +92,7 @@ def get_routes_and_process(chunk_df, domains, domain_type, start_date, end_date)
     total_processed_routes_for_depart = 0
     total_processed_routes_for_depart_from_client = 0
     total_processed_routes_for_reach_to_merchant = 0
-    total_processed_routes_for_delivery = 0
+    total_processed_orders_for_delivery = 0
 
     # Added to eliminate orders with no route, because of in case of orders (chunk_df) have no
     # route_id (delivery_route_id), in DataProcessor it gets error while merging with routes.
@@ -142,8 +142,8 @@ def get_routes_and_process(chunk_df, domains, domain_type, start_date, end_date)
 
         if 'deliver' in domains and domain_type not in (2, 6):
             result_dict = deliver_main(reach_predictions, depart_from_client_predictions)
-            total_processed_routes_for_delivery += result_dict.get('routes')
-            print("Total Processed Routes For Delivery : ", total_processed_routes_for_delivery)
+            total_processed_orders_for_delivery += result_dict.get('orders')
+            print("Total Processed Orders For Delivery : ", total_processed_orders_for_delivery)
 
     with WRITE_ENGINE.begin() as connection:
         remove_duplicates(connection, config.REACH_TABLE_NAME, 'prediction_id', ['order_id'], config.SCHEMA_NAME)
@@ -260,6 +260,7 @@ def deliver_main(reach_df: pd.DataFrame, depart_from_client_df: pd.DataFrame):
     reach_df = reach_df[reach_df.time.notna()]
     depart_from_client_df = depart_from_client_df[depart_from_client_df.time.notna()]
     delivery_predictions = reach_df.merge(depart_from_client_df, on="_id_oid", how="inner")
+    orders = depart_from_client_df['_id_oid'].nunique()
     delivery_predictions['time'] = delivery_predictions['time_x'] + (
                 delivery_predictions['time_y'] - delivery_predictions['time_x']) / 2
     delivery_predictions = delivery_predictions[['_id_oid', 'time', 'deliver_location__coordinates_lat',
@@ -272,7 +273,7 @@ def deliver_main(reach_df: pd.DataFrame, depart_from_client_df: pd.DataFrame):
 
     dict = {
         'preds': delivery_predictions,
-        'routes': delivery_predictions['delivery_route_oid'].nunique()
+        'orders': orders
     }
 
     return dict
