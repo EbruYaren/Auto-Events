@@ -6,7 +6,7 @@ DEPART_CREATE_TABLE = False
 DEPART_FROM_CLIENT_CREATE_TABLE = False
 REACH_TO_SHOP_TABLE = False
 REACH_TO_RESTAURANT_TABLE = False
-
+DELIVERY_CREATE_TABLE = True
 
 
 REDSHIFT_ETL_URI = os.environ.get('REDSHIFT_ETL_URI')
@@ -49,6 +49,12 @@ DEPART_FROM_CLIENT_TABLE_COLUMNS = ['order_id',
                                     'predicted_depart_from_client_date',
                                     'predicted_depart_from_client_dateL',
                                     'latitude', 'longitude']
+
+DELIVERY_TABLE_NAME = "delivery_date_prediction"
+DELIVERY_TABLE_COLUMNS = ['order_id',
+                          'predicted_delivery_date',
+                          'predicted_delivery_dateL',
+                          'latitude', 'longitude']
 
 SCHEMA_NAME = "public" if TEST else "project_auto_events"
 DB_USER_GROUP = "data_rw" if TEST else "data_general_ro"
@@ -138,8 +144,22 @@ CREATE TABLE {schema}.depart_from_client_date_prediction
 );
 """.format(schema=SCHEMA_NAME)
 
+DELIVERY_CREATE_TABLE_QUERY = """
+CREATE TABLE if not exists {schema}.delivery_date_prediction
+(
+    prediction_id                       BIGINT IDENTITY (0,1) NOT NULL,
+    order_id                            varchar(256) sortkey,
+    predicted_delivery_date   timestamp,
+    predicted_delivery_dateL  timestamp,
+    latitude                            double precision,
+    longitude                           double precision,
+    predictedat                         timestamp default getdate()
+);
+""".format(schema=SCHEMA_NAME)
+
 RUN_INTERVAL = timedelta(hours=1, minutes=30)
 
 DOMAIN_LIST = ['depart', 'reach', 'depart,reach', 'depart_from_client', 'depart,reach,depart_from_client',
-               'reach_to_merchant', 'depart,reach,depart_from_client,reach_to_merchant']
-DEFAULT_DOMAIN = 'depart,reach,depart_from_client,reach_to_merchant'
+               'reach_to_merchant', 'deliver', 'depart,reach,depart_from_client,reach_to_merchant',
+               'depart,reach,depart_from_client,reach_to_merchant,deliver']
+DEFAULT_DOMAIN = 'depart,reach,depart_from_client,reach_to_merchant,deliver'

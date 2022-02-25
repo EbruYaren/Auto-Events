@@ -68,6 +68,12 @@ def run(start_date: str, end_date: str, domains: list, courier_ids: list):
             grant_access(connection, config.DEPART_FROM_CLIENT_TABLE_NAME, config.SCHEMA_NAME, config.DB_USER_GROUP)
             print("Depart From Client Table created")
 
+    if config.DELIVERY_CREATE_TABLE:
+        with WRITE_ENGINE.begin() as connection:
+            create_table(connection, config.DELIVERY_CREATE_TABLE_QUERY)
+            grant_access(connection, config.DELIVERY_TABLE_NAME, config.SCHEMA_NAME, config.DB_USER_GROUP)
+            print("Delivery Table created")
+
     orders = Order(start_date, end_date, REDSHIFT_ETL, courier_ids, chunk_size=config.chunk_size, domains=domains,
                    domain_type=1)
     food_orders = Order(start_date, end_date, REDSHIFT_ETL, courier_ids, chunk_size=config.chunk_size, domain_type=2)
@@ -102,9 +108,15 @@ def get_routes_and_process(chunk_df, domains, domain_type, start_date, end_date)
         routes_df = routes.fetch_routes_df()
         print('Routes fetched:', len(routes_df))
 
+        reach_predictions = []
+        depart_from_client_predictions = []
+
         if 'reach' in domains and domain_type not in (2, 6):
             processed_reach_orders = reach_main(chunk_df, routes_df)
             total_processed_routes_for_reach += processed_reach_orders
+            reach_predictions = reach_main(chunk_df, routes_df).get('preds')
+            orders = chunk_df[['_id_oid', 'deliver_location__coordinates_lon', 'deliver_location__coordinates_lat']]
+            reach_predictions = reach_predictions.merge(orders, left_on="_id_oid", right_on="_id_oid", how="inner")
             print("Total Processed Routes For Reach : ", total_processed_routes_for_reach)
 
         if 'depart' in domains and domain_type not in (2, 6):
@@ -116,15 +128,19 @@ def get_routes_and_process(chunk_df, domains, domain_type, start_date, end_date)
             from src.CourierTrajectory import CourierTrajectory
             trajectories = CourierTrajectory(courier_ids, start_date, end_date).fetch()
             print('Return trajectories fetched:', len(trajectories))
-            processed_depart_from_client_orders = depart_from_client_main(chunk_df, routes_df, trajectories)
+            depart_from_client_dict = depart_from_client_main(chunk_df, routes_df, trajectories)
+            processed_depart_from_client_orders = depart_from_client_dict.get('routes')
             total_processed_routes_for_depart_from_client += processed_depart_from_client_orders
             print("Total Processed Routes for Depart from Client: ", total_processed_routes_for_depart_from_client)
+            depart_from_client_predictions = depart_from_client_dict.get('preds')
 
         if 'reach_to_merchant' in domains and domain_type in (2, 6):
             processed_reach_to_merchant_orders = reach_to_merchant_main(chunk_df, routes_df, domain_type)
             total_processed_routes_for_reach_to_merchant += processed_reach_to_merchant_orders
             print("Total Processed Routes For Reach To Merchant : ", total_processed_routes_for_reach_to_merchant)
 
+        if 'deliver' in domains and domain_type not in (2, 6):
+            deliver_main(reach_predictions, depart_from_client_predictions)
 
     with WRITE_ENGINE.begin() as connection:
         remove_duplicates(connection, config.REACH_TABLE_NAME, 'prediction_id', ['order_id'], config.SCHEMA_NAME)
@@ -135,6 +151,7 @@ def get_routes_and_process(chunk_df, domains, domain_type, start_date, end_date)
                           config.SCHEMA_NAME)
         remove_duplicates(connection, config.REACH_TO_RESTAURANT_TABLE_NAME, 'prediction_id', ['order_id'],
                           config.SCHEMA_NAME)
+        remove_duplicates(connection, config.DELIVERY_TABLE_NAME, 'prediction_id', ['order_id'], config.SCHEMA_NAME)
 
     print("Duplicates are removed")
 
@@ -154,7 +171,12 @@ def reach_main(chunk_df: pd.DataFrame, routes_df: pd.DataFrame):
                     config.REACH_TABLE_COLUMNS)
     writer.write()
 
-    return chunk_df['delivery_route_oid'].nunique()
+    dict = {
+        'preds': predictions,
+        'routes': chunk_df['delivery_route_oid'].nunique()
+    }
+
+    return dict
 
 
 def reach_to_merchant_main(chunk_df: pd.DataFrame, routes_df: pd.DataFrame, domain_type):
@@ -221,6 +243,28 @@ def depart_from_client_main(chunk_df: pd.DataFrame, routes_df: pd.DataFrame, tra
 
     writer = Writer(predictions, WRITE_ENGINE, config.DEPART_FROM_CLIENT_TABLE_NAME, config.SCHEMA_NAME,
                     config.DEPART_FROM_CLIENT_TABLE_COLUMNS)
+    writer.write()
+
+    dict = {
+        'preds': predictions,
+        'routes': chunk_df['delivery_route_oid'].nunique()
+    }
+
+    return dict
+
+
+def deliver_main(reach_df: pd.DataFrame, depart_from_client_df: pd.DataFrame):
+    reach_df = reach_df[reach_df.time.notna()]
+    depart_from_client_df = depart_from_client_df[depart_from_client_df.time.notna()]
+    delivery_predictions = reach_df.merge(depart_from_client_df, on="_id_oid", how="inner")
+    delivery_predictions['time'] = delivery_predictions['time_x'] + (
+                delivery_predictions['time_y'] - delivery_predictions['time_x']) / 2
+    delivery_predictions = delivery_predictions[['_id_oid', 'time', 'deliver_location__coordinates_lat',
+                                                 'deliver_location__coordinates_lon']]
+    delivery_predictions.rename(columns={'deliver_location__coordinates_lat': 'lat', 'deliver_location__coordinates_lon': 'lon'}, inplace=True)
+
+    writer = Writer(delivery_predictions, WRITE_ENGINE, config.DELIVERY_TABLE_NAME, config.SCHEMA_NAME,
+                    config.DELIVERY_TABLE_COLUMNS)
     writer.write()
 
     return chunk_df['delivery_route_oid'].nunique()
