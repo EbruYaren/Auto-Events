@@ -293,6 +293,8 @@ class ReachToMerchantDataProcessor(DataProcessor):
         counts = m_df.groupby('route_id')['time'].count()
         filtered_ids = counts[counts >= self.minimum_location_limit].index
         m_df = m_df[m_df['route_id'].isin(filtered_ids)]
+        if m_df.empty:
+            return None
         m_df['distance'] = m_df.apply(lambda r: self.haversine_apply(r), axis=1)
         m_df['distance_bin'] = m_df.distance.apply(self.find_distance_bin)
         m_df['first_location_time'] = m_df.groupby(['delivery_route_oid'])['time'].transform(np.min)

@@ -188,8 +188,12 @@ def reach_to_merchant_main(chunk_df: pd.DataFrame, routes_df: pd.DataFrame, doma
 
     order_ids = pd.DataFrame(chunk_df['_id_oid'], columns=['_id_oid'])
     processed_data = ReachToMerchantDataProcessor(
-            orders=chunk_df, routes=routes_df, minimum_location_limit=config.MINIMUM_LOCATION_LIMIT,
-            fibonacci_base=config.FIBONACCI_BASE, domain_type=domain_type).process(include_all=False)
+        orders=chunk_df, routes=routes_df, minimum_location_limit=config.MINIMUM_LOCATION_LIMIT,
+        fibonacci_base=config.FIBONACCI_BASE, domain_type=domain_type).process(include_all=False)
+
+    if processed_data is None:
+        print("Prediction could not be performed because there is no route information.")
+        return 0
 
     single_predictor = ReachLogisticReachSinglePredictor(config.REACH_INTERCEPT, config.REACH_COEFFICIENTS)
     bulk_predictor = ReachBulkPredictor(processed_data, single_predictor)
