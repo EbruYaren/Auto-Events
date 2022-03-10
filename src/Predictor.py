@@ -146,8 +146,9 @@ class DepartBulkPredictor:
 
 class DepartFromClientBulkPredictor:
 
-    def __init__(self, processed_data: pd.DataFrame, predictor: SinglePredictor, max_distance_to_client:float):
-        self.__processed_data = processed_data
+    def __init__(self, processed_data: pd.DataFrame, predictor: SinglePredictor, max_distance_to_client:float,
+                 reach_predictions_df: pd.DataFrame):
+        self.__processed_data = processed_data.merge(reach_predictions_df, on='_id_oid', how='left')
         self.__predictor = predictor
         self.__max_distance_to_client = max_distance_to_client
 
@@ -164,6 +165,7 @@ class DepartFromClientBulkPredictor:
         df['prev_distance_to_client'] = df.groupby('_id_oid')['distance_to_client'].shift(1)
         true_preds = df[(df['predictions']) &
                         (df['time'] >= df['reach_date']) &
+                        (df['time'] >= df['predicted_reach_date']) &
                         (df['prev_distance_to_client'] < self.__max_distance_to_client)]
         true_preds['true_rn'] = true_preds.groupby('_id_oid')['time'].rank(method='min')
         true_preds = true_preds[true_preds['true_rn'] == 1]
@@ -171,7 +173,8 @@ class DepartFromClientBulkPredictor:
         pred_rows['last_false'] = pred_rows['rn'].apply(lambda r: r - 1 if r > 1 else r)
         pred_rows.drop('rn', axis='columns', inplace=True)
         df = df.merge(pred_rows, on='_id_oid')
-        labeled_times = df[df['rn'] == df['last_false']][['_id_oid', 'time', 'lat', 'lon']] \
-            .drop_duplicates()
+
+        labeled_times = df[(df['rn'] == df['last_false']) & (df['time'] >= df['predicted_reach_date']) & (df['time'] >= df['reach_date'])][
+            ['_id_oid', 'time', 'lat', 'lon']].drop_duplicates()
 
         return labeled_times
