@@ -126,26 +126,27 @@ class DepartBulkPredictor:
         for delivery_job_oid, row in df.groupby('delivery_job_oid'):
             # Getting first batch
             first_row = row.loc[row['delivery_batch_index'] == 1]
-            rows.append({
-                '_id_oid': first_row._id_oid.values[0],
-                'time': first_row['time'].values[0],
-                'lat': first_row['lat'].values[0],
-                'lon': first_row['lon'].values[0],
-            })
-            # If first batch was predicted:
-            if any(first_row.time.notna()):
-                # Getting unpredicted batches after first batch
-                batches = row[(row['delivery_batch_index'] > 1)]
-                batches = batches.reset_index(drop=True)
-                if batches.size > 0:
-                    # For each unpredicted batch, first batch data is being appended to rows.
-                    for i, r in batches.iterrows():
-                        rows.append({
-                            '_id_oid': r._id_oid,
-                            'time': first_row['time'].values[0],
-                            'lat': first_row['lat'].values[0],
-                            'lon': first_row['lon'].values[0],
-                        })
+            if first_row.empty is False:
+                rows.append({
+                    '_id_oid': first_row._id_oid.values[0],
+                    'time': first_row['time'].values[0],
+                    'lat': first_row['lat'].values[0],
+                    'lon': first_row['lon'].values[0],
+                })
+                # If first batch was predicted:
+                if any(first_row.time.notna()):
+                    # Getting unpredicted batches after first batch
+                    batches = row[(row['delivery_batch_index'] > 1)]
+                    batches = batches.reset_index(drop=True)
+                    if batches.size > 0:
+                        # For each unpredicted batch, first batch data is being appended to rows.
+                        for i, r in batches.iterrows():
+                            rows.append({
+                                '_id_oid': r._id_oid,
+                                'time': first_row['time'].values[0],
+                                'lat': first_row['lat'].values[0],
+                                'lon': first_row['lon'].values[0],
+                            })
 
         rows = pd.DataFrame(rows)
         return rows
