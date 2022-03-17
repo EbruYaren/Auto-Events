@@ -81,10 +81,12 @@ class DepartFromClientLogisticReachSinglePredictor(SinglePredictor):
 
 class DepartBulkPredictor:
 
-    def __init__(self, processed_data: pd.DataFrame, predictor: SinglePredictor, max_distance_to_warehouse:float):
+    def __init__(self, processed_data: pd.DataFrame, predictor: SinglePredictor, max_distance_to_warehouse:float,
+                 orders_df: pd.DataFrame):
         self.__processed_data = processed_data
         self.__predictor = predictor
         self.__max_distance_to_warehouse = max_distance_to_warehouse
+        self.__orders_df = orders_df
 
     def predict_in_bulk(self):
         df = self.__processed_data.copy()
@@ -111,13 +113,12 @@ class DepartBulkPredictor:
             .drop_duplicates()
 
         # Getting unpredicted batched orders data
-        batched_unpredicted_rows = self.get_unpredicted_batched_orders(labeled_times)
-        # Appending unpredicted batched data to predictions
-        return labeled_times.append(batched_unpredicted_rows).reset_index(drop=True)
+        rows = self.get_unpredicted_batched_orders(labeled_times)
+        return rows.reset_index(drop=True)
 
     def get_unpredicted_batched_orders(self, predictions):
         # Getting processed data before prediction process and group by _id_oid to eliminate multiple routes
-        data = self.__processed_data.groupby(['_id_oid']).max().reset_index()
+        data = self.__orders_df.groupby(['_id_oid']).max().reset_index()
         # Merging predicted and processed data on _id_oid  to get unpredicted batched orders
         df = data.merge(predictions, left_on="_id_oid", right_on="_id_oid", how="left")
         rows = []
@@ -125,19 +126,25 @@ class DepartBulkPredictor:
         for delivery_job_oid, row in df.groupby('delivery_job_oid'):
             # Getting first batch
             first_row = row.loc[row['delivery_batch_index'] == 1]
+            rows.append({
+                '_id_oid': first_row._id_oid.values[0],
+                'time': first_row['time'].values[0],
+                'lat': first_row['lat'].values[0],
+                'lon': first_row['lon'].values[0],
+            })
             # If first batch was predicted:
-            if any(first_row.time_y.notna()):
+            if any(first_row.time.notna()):
                 # Getting unpredicted batches after first batch
-                batches = row[(row['delivery_batch_index'] > 1) & (row['time_y'].isna())]
+                batches = row[(row['delivery_batch_index'] > 1)]
                 batches = batches.reset_index(drop=True)
                 if batches.size > 0:
                     # For each unpredicted batch, first batch data is being appended to rows.
-                    for (i, r) in batches.iterrows():
+                    for i, r in batches.iterrows():
                         rows.append({
                             '_id_oid': r._id_oid,
-                            'time': first_row['time_y'].values[0],
-                            'lat': first_row['lat_y'].values[0],
-                            'lon': first_row['lon_y'].values[0],
+                            'time': first_row['time'].values[0],
+                            'lat': first_row['lat'].values[0],
+                            'lon': first_row['lon'].values[0],
                         })
 
         rows = pd.DataFrame(rows)
@@ -146,8 +153,9 @@ class DepartBulkPredictor:
 
 class DepartFromClientBulkPredictor:
 
-    def __init__(self, processed_data: pd.DataFrame, predictor: SinglePredictor, max_distance_to_client:float):
-        self.__processed_data = processed_data
+    def __init__(self, processed_data: pd.DataFrame, predictor: SinglePredictor, max_distance_to_client:float,
+                 reach_predictions_df: pd.DataFrame):
+        self.__processed_data = processed_data.merge(reach_predictions_df, on='_id_oid', how='left')
         self.__predictor = predictor
         self.__max_distance_to_client = max_distance_to_client
 
@@ -164,6 +172,7 @@ class DepartFromClientBulkPredictor:
         df['prev_distance_to_client'] = df.groupby('_id_oid')['distance_to_client'].shift(1)
         true_preds = df[(df['predictions']) &
                         (df['time'] >= df['reach_date']) &
+                        (df['time'] >= df['predicted_reach_date']) &
                         (df['prev_distance_to_client'] < self.__max_distance_to_client)]
         true_preds['true_rn'] = true_preds.groupby('_id_oid')['time'].rank(method='min')
         true_preds = true_preds[true_preds['true_rn'] == 1]
@@ -171,7 +180,8 @@ class DepartFromClientBulkPredictor:
         pred_rows['last_false'] = pred_rows['rn'].apply(lambda r: r - 1 if r > 1 else r)
         pred_rows.drop('rn', axis='columns', inplace=True)
         df = df.merge(pred_rows, on='_id_oid')
-        labeled_times = df[df['rn'] == df['last_false']][['_id_oid', 'time', 'lat', 'lon']] \
-            .drop_duplicates()
+
+        labeled_times = df[(df['rn'] == df['last_false']) & (df['time'] >= df['predicted_reach_date']) & (df['time'] >= df['reach_date'])][
+            ['_id_oid', 'time', 'lat', 'lon']].drop_duplicates()
 
         return labeled_times

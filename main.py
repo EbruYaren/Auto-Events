@@ -129,7 +129,8 @@ def get_routes_and_process(chunk_df, domains, domain_type, start_date, end_date)
             from src.CourierTrajectory import CourierTrajectory
             trajectories = CourierTrajectory(courier_ids, start_date, end_date).fetch()
             print('Return trajectories fetched:', len(trajectories))
-            depart_from_client_dict = depart_from_client_main(chunk_df, routes_df, trajectories)
+            depart_from_client_dict = depart_from_client_main(chunk_df, routes_df, trajectories,
+                                                              reach_predictions[reach_predictions.time.notna()][['_id_oid', 'time']].rename(columns={'time': 'predicted_reach_date'}))
             processed_depart_from_client_orders = depart_from_client_dict.get('routes')
             total_processed_routes_for_depart_from_client += processed_depart_from_client_orders
             print("Total Processed Routes for Depart from Client: ", total_processed_routes_for_depart_from_client)
@@ -224,7 +225,7 @@ def depart_main(chunk_df: pd.DataFrame, routes_df: pd.DataFrame):
         minimum_location_limit=config.MINIMUM_LOCATION_LIMIT).process()
 
     single_predictor = DepartLogisticReachSinglePredictor(config.DEPART_INTERCEPT, config.DEPART_COEFFICIENTS)
-    bulk_predictor = DepartBulkPredictor(processed_data, single_predictor, config.MAX_DISTANCE_FOR_DEPART_PREDICTION)
+    bulk_predictor = DepartBulkPredictor(processed_data, single_predictor, config.MAX_DISTANCE_FOR_DEPART_PREDICTION, chunk_df)
     predictions = bulk_predictor.predict_in_bulk()
     predictions = order_ids.merge(predictions, on='_id_oid', how='left')
 
@@ -235,7 +236,7 @@ def depart_main(chunk_df: pd.DataFrame, routes_df: pd.DataFrame):
     return chunk_df['delivery_route_oid'].nunique()
 
 
-def depart_from_client_main(chunk_df: pd.DataFrame, routes_df: pd.DataFrame, trajectory_df: pd.DataFrame):
+def depart_from_client_main(chunk_df: pd.DataFrame, routes_df: pd.DataFrame, trajectory_df: pd.DataFrame, reach_predictions_df: pd.DataFrame):
     order_ids = pd.DataFrame(chunk_df['_id_oid'], columns=['_id_oid'])
     processed_data = DepartFromClientDataProcessor(
         orders=chunk_df, routes=routes_df, trajectories=trajectory_df,
@@ -244,7 +245,8 @@ def depart_from_client_main(chunk_df: pd.DataFrame, routes_df: pd.DataFrame, tra
     single_predictor = DepartFromClientLogisticReachSinglePredictor(config.DEPART_FROM_CLIENT_INTERCEPT,
                                                                     config.DEPART_FROM_CLIENT_COEFFICIENTS)
     bulk_predictor = DepartFromClientBulkPredictor(processed_data, single_predictor,
-                                                   config.MAX_DISTANCE_FOR_DEPART_FROM_CLIENT_PREDICTION)
+                                                   config.MAX_DISTANCE_FOR_DEPART_FROM_CLIENT_PREDICTION,
+                                                   reach_predictions_df=reach_predictions_df)
     predictions = bulk_predictor.predict_in_bulk()
     predictions = order_ids.merge(predictions, on='_id_oid', how='left')
 
