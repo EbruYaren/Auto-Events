@@ -146,8 +146,12 @@ class DepartDataProcessor(DataProcessor):
                 row['warehouse_location__coordinates_lat']) * 1000,
             axis='columns')
 
-        data['dist_to_warehouse_diff'] = data.groupby('_id_oid').apply(
-            lambda route: route['distance_to_warehouse'] - route['distance_to_warehouse'].shift(1)).droplevel(0)
+
+        if data._id_oid.nunique() == 1:
+            data['dist_to_warehouse_diff'] = data['distance_to_warehouse'] - data['distance_to_warehouse'].shift(1)
+        else:
+            data['dist_to_warehouse_diff'] = data.groupby('_id_oid').apply(
+                lambda route: route['distance_to_warehouse'] - route['distance_to_warehouse'].shift(1)).droplevel(0)
 
         data['speed_to_warehouse'] = data['dist_to_warehouse_diff'] / data['tbe']
 
@@ -206,8 +210,11 @@ class DepartFromClientDataProcessor(DataProcessor):
                 row['delivery_address_location__coordinates_lat']) * 1000,
             axis='columns')
 
-        data['dist_to_client_diff'] = data.groupby('_id_oid').apply(
-            lambda route: route['distance_to_client'] - route['distance_to_client'].shift(1)).droplevel(0)
+        if data._id_oid.nunique() == 1:
+            data['dist_to_client_diff'] = data['distance_to_client'] - data['distance_to_client'].shift(1)
+        else:
+            data['dist_to_client_diff'] = data.groupby('_id_oid').apply(
+                lambda route: route['distance_to_client'] - route['distance_to_client'].shift(1)).droplevel(0)
 
         data['speed_to_client'] = data['dist_to_client_diff'] / data['tbe']
 
