@@ -132,8 +132,12 @@ class DepartDataProcessor(DataProcessor):
         data.sort_values(['_id_oid', 'index'], inplace=True)
         print('Depart data shape: ', data.shape)
         print('Depart data order count: ', data._id_oid.nunique())
-        data['tbe'] = data.groupby('_id_oid').apply(
-            lambda route: (route['time'] - route['time'].shift(1)).dt.total_seconds()).droplevel(0)
+
+        if data._id_oid.nunique() == 1:
+            data['tbe'] = (data['time'] - data['time'].shift(1)).dt.total_seconds()
+        else:
+            data['tbe'] = data.groupby('_id_oid').apply(
+                lambda route: (route['time'] - route['time'].shift(1)).dt.total_seconds()).droplevel(0)
 
         data['distance_to_warehouse'] = data.apply(
             lambda row: DataProcessor.haversine(
@@ -189,8 +193,11 @@ class DepartFromClientDataProcessor(DataProcessor):
     def get_movement_info(data: pd.DataFrame):
         data.sort_values(['_id_oid', 'time'], inplace=True)
 
-        data['tbe'] = data.groupby('_id_oid').apply(
-            lambda route: (route['time'] - route['time'].shift(1)).dt.total_seconds()).droplevel(0)
+        if data._id_oid.nunique() == 1:
+            data['tbe'] = (data['time'] - data['time'].shift(1)).dt.total_seconds()
+        else:
+            data['tbe'] = data.groupby('_id_oid').apply(
+                lambda route: (route['time'] - route['time'].shift(1)).dt.total_seconds()).droplevel(0)
 
         data['distance_to_client'] = data.apply(
             lambda row: DataProcessor.haversine(
