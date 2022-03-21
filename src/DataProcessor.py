@@ -130,7 +130,7 @@ class DepartDataProcessor(DataProcessor):
     @staticmethod
     def get_movement_info(data: pd.DataFrame):
         data.sort_values(['_id_oid', 'index'], inplace=True)
-
+        print('Depart data shape: ', data.shape)
         data['tbe'] = data.groupby('_id_oid').apply(
             lambda route: (route['time'] - route['time'].shift(1)).dt.total_seconds()).droplevel(0)
 
