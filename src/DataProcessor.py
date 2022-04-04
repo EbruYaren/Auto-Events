@@ -67,7 +67,7 @@ class ReachDataProcessor(DataProcessor):
     def __init__(self, orders: pd.DataFrame, routes: pd.DataFrame, fibonacci_base, minimum_location_limit):
 
         self.minimum_location_limit = minimum_location_limit
-        self.merged_df = routes.merge(orders, left_on="route_id", right_on="delivery_route_oid", how="inner")
+        self.merged_df = routes.merge(orders, left_on="route_id", right_on="_id_oid", how="inner")
         self.fibonacci_base = fibonacci_base
 
     @staticmethod
@@ -98,18 +98,18 @@ class ReachDataProcessor(DataProcessor):
         m_df = m_df[m_df['route_id'].isin(filtered_ids)]
         m_df['distance'] = m_df.apply(lambda r: self.haversine_apply(r), axis=1)
         m_df['distance_bin'] = m_df['distance'].apply(self.find_distance_bin)
-        m_df['first_location_time'] = m_df.groupby(['delivery_route_oid'])['time'].transform(np.min)
-        m_df['last_location_time'] = m_df.groupby(['delivery_route_oid'])['time'].transform(np.max)
-        m_df['next_location_time'] = m_df.sort_values(['delivery_route_oid', 'time']).groupby(['delivery_route_oid'])[
+        m_df['first_location_time'] = m_df.groupby(['route_id'])['time'].transform(np.min)
+        m_df['last_location_time'] = m_df.groupby(['route_id'])['time'].transform(np.max)
+        m_df['next_location_time'] = m_df.sort_values(['route_id', 'time']).groupby(['route_id'])[
             'time'].shift(-1)
         m_df['tbe'] = (m_df['next_location_time'] - m_df['time']).apply(self.convert_to_seconds).fillna(0)
         m_df['previous_distance_bin'] = \
-            m_df.sort_values(['delivery_route_oid', 'time']).groupby(['delivery_route_oid'])['distance_bin'].shift(1)
+            m_df.sort_values(['route_id', 'time']).groupby(['route_id'])['distance_bin'].shift(1)
         m_df['is_distance_bin_changed'] = m_df['distance_bin'] != m_df['previous_distance_bin']
-        m_df['distance_bin_group'] = m_df.sort_values(['delivery_route_oid', 'time']).groupby(['delivery_route_oid'])[
+        m_df['distance_bin_group'] = m_df.sort_values(['route_id', 'time']).groupby(['route_id'])[
             'is_distance_bin_changed'].cumsum()
-        m_df['time_passed_in_bin'] = m_df.sort_values(['delivery_route_oid', 'distance_bin_group', 'time']).groupby(
-            ['delivery_route_oid', 'distance_bin_group'])['tbe'].cumsum()
+        m_df['time_passed_in_bin'] = m_df.sort_values(['route_id', 'distance_bin_group', 'time']).groupby(
+            ['route_id', 'distance_bin_group'])['tbe'].cumsum()
         m_df['dbw_reach_client'] = m_df.apply(lambda x: self.haversine(x['lon'], x['lat'],
                                                                        x['reach_location__coordinates_lon'],
                                                                        x['reach_location__coordinates_lat']) * 1000,
@@ -124,7 +124,7 @@ class ReachDataProcessor(DataProcessor):
 class DepartDataProcessor(DataProcessor):
 
     def __init__(self, orders: pd.DataFrame, routes: pd.DataFrame, minimum_location_limit: int):
-        self.merged_df = routes.merge(orders, left_on="route_id", right_on="delivery_route_oid", how="inner")
+        self.merged_df = routes.merge(orders, left_on="route_id", right_on="_id_oid", how="inner")
         self.minimum_location_limit = minimum_location_limit
 
     @staticmethod
@@ -186,9 +186,7 @@ class DepartDataProcessor(DataProcessor):
 
 class DepartFromClientDataProcessor(DataProcessor):
 
-    def __init__(self, orders: pd.DataFrame, routes: pd.DataFrame, trajectories: pd.DataFrame,
-                 minimum_location_limit: int):
-        self.trajectories = trajectories
+    def __init__(self, orders: pd.DataFrame, routes: pd.DataFrame, minimum_location_limit: int):
         self.routes = routes
         self.orders = orders
         self.minimum_location_limit = minimum_location_limit
@@ -236,17 +234,11 @@ class DepartFromClientDataProcessor(DataProcessor):
             .rolling(3, center=True).mean().droplevel(0)
         data['dbw_client_log'] = data['distance_to_client'].apply(log)
 
-        return data.dropna()
+        return data
 
     def process(self):
-        oid_route = self.orders.set_index('_id_oid')['delivery_route_oid'].to_dict()
-        trajectories = self.trajectories[self.trajectories['_id_oid'].isin(oid_route)].copy()
-        trajectories['route_id'] = trajectories['_id_oid'].replace(oid_route)
-        trajectories = trajectories.drop(columns=['_id_oid'])
-
         # Add returning logs
-        m_df = pd.concat([self.routes, trajectories], sort=False).merge(self.orders, left_on="route_id",
-                                                                        right_on="delivery_route_oid", how="inner")
+        m_df = self.routes.merge(self.orders, left_on="route_id", right_on="_id_oid", how="inner")
 
         # Add next route into tail
         job_routes = m_df.groupby(['delivery_job_oid', 'route_id'])['time'].max().reset_index().sort_values(['delivery_job_oid', 'time'])
@@ -254,9 +246,9 @@ class DepartFromClientDataProcessor(DataProcessor):
         job_routes = job_routes[['route_id', 'prev_route_id']].dropna()
         job_routes = job_routes.merge(self.routes, on='route_id').drop(columns='route_id') \
             .rename(columns={'prev_route_id': 'route_id'})
-        job_routes = job_routes.merge(self.orders, left_on="route_id", right_on="delivery_route_oid", how="inner")
+        job_routes = job_routes.merge(self.orders, left_on="route_id", right_on="_id_oid", how="inner")
         m_df = pd.concat([m_df, job_routes], sort=False)
-        m_df = m_df.drop(columns='index')
+        # m_df = m_df.drop(columns='index')
 
         # Filter by count
         counts = m_df.groupby('route_id')['time'].count()
@@ -278,7 +270,7 @@ class ReachToMerchantDataProcessor(DataProcessor):
                  domain_type: int):
 
         self.minimum_location_limit = minimum_location_limit
-        self.merged_df = routes.merge(orders, left_on="route_id", right_on="delivery_route_oid", how="inner")
+        self.merged_df = routes.merge(orders, left_on="route_id", right_on="_id_oid", how="inner")
         self.fibonacci_base = fibonacci_base
         self.domain_type = domain_type
 
@@ -312,18 +304,18 @@ class ReachToMerchantDataProcessor(DataProcessor):
             return None
         m_df['distance'] = m_df.apply(lambda r: self.haversine_apply(r), axis=1)
         m_df['distance_bin'] = m_df.distance.apply(self.find_distance_bin)
-        m_df['first_location_time'] = m_df.groupby(['delivery_route_oid'])['time'].transform(np.min)
-        m_df['last_location_time'] = m_df.groupby(['delivery_route_oid'])['time'].transform(np.max)
-        m_df['next_location_time'] = m_df.sort_values(['delivery_route_oid', 'time']).groupby(['delivery_route_oid'])[
+        m_df['first_location_time'] = m_df.groupby(['route_id'])['time'].transform(np.min)
+        m_df['last_location_time'] = m_df.groupby(['route_id'])['time'].transform(np.max)
+        m_df['next_location_time'] = m_df.sort_values(['route_id', 'time']).groupby(['route_id'])[
             'time'].shift(-1)
         m_df['tbe'] = (m_df['next_location_time'] - m_df['time']).apply(self.convert_to_seconds).fillna(0)
         m_df['previous_distance_bin'] = \
-            m_df.sort_values(['delivery_route_oid', 'time']).groupby(['delivery_route_oid'])['distance_bin'].shift(1)
+            m_df.sort_values(['route_id', 'time']).groupby(['route_id'])['distance_bin'].shift(1)
         m_df['is_distance_bin_changed'] = m_df['distance_bin'] != m_df['previous_distance_bin']
-        m_df['distance_bin_group'] = m_df.sort_values(['delivery_route_oid', 'time']).groupby(['delivery_route_oid'])[
+        m_df['distance_bin_group'] = m_df.sort_values(['route_id', 'time']).groupby(['route_id'])[
             'is_distance_bin_changed'].cumsum()
-        m_df['time_passed_in_bin'] = m_df.sort_values(['delivery_route_oid', 'distance_bin_group', 'time']).groupby(
-            ['delivery_route_oid', 'distance_bin_group'])['tbe'].cumsum()
+        m_df['time_passed_in_bin'] = m_df.sort_values(['route_id', 'distance_bin_group', 'time']).groupby(
+            ['route_id', 'distance_bin_group'])['tbe'].cumsum()
         m_df['dbw_reach_client'] = m_df.apply(lambda x: self.haversine(x['lon'], x['lat'],
                                                                        x['reached_to_restaurant_lon'],
                                                                        x['reached_to_restaurant_lat']) * 1000,
