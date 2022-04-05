@@ -122,10 +122,9 @@ def get_routes_and_process(chunk_df, domains, domain_type, start_date, end_date)
             print("Total Processed Routes For Reach : ", total_processed_routes_for_reach)
 
         if 'depart_from_client' in domains and domain_type not in (2, 6):
-            depart_from_client_dict = depart_from_client_main(chunk_df, routes_df,
-                                                              reach_predictions[reach_predictions.time.notna()][
-                                                                  ['_id_oid', 'time']].rename(
-                                                                  columns={'time': 'predicted_reach_date'}))
+            reach_predictions = reach_predictions[reach_predictions.time.notna()][['_id_oid', 'time']].\
+                rename(columns={'time': 'predicted_reach_date'}).copy()
+            depart_from_client_dict = depart_from_client_main(chunk_df, routes_df, reach_predictions)
             processed_depart_from_client_orders = depart_from_client_dict.get('routes')
             total_processed_routes_for_depart_from_client += processed_depart_from_client_orders
             print("Total Processed Routes for Depart from Client: ", total_processed_routes_for_depart_from_client)

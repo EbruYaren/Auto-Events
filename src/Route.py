@@ -40,6 +40,8 @@ class Route:
                              artisanorder END, 1) IGNORE NULLS OVER(PARTITION BY courierid ORDER BY createdat)) AS prev_artisan_order_id"""
 
 
+        # Getting routes from autoreach table.
+        # Used nested query because of Athena does not support window operations or aggregations in WHERE clause
         query = f"""
          SELECT *
          FROM (
