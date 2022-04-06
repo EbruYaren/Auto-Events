@@ -137,6 +137,7 @@ def get_routes_and_process(chunk_df, domains, domain_type, start_date, end_date)
 
 
         if 'deliver' in domains and domain_type not in (2, 6):
+            reach_predictions = reach_predictions.rename(columns={'predicted_reach_date': 'time'}).copy()
             result_dict = deliver_main(reach_predictions, depart_from_client_predictions)
             total_processed_orders_for_delivery += result_dict.get('orders')
             print("Total Processed Orders For Delivery : ", total_processed_orders_for_delivery)
