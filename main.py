@@ -20,8 +20,8 @@ def main():
     params = {}
 
     if config.TEST:
-        start_date = '2022-01-16 18:30:00'
-        end_date = '2022-01-16 20:00:00'
+        start_date = '2022-04-04 15:30:00'
+        end_date = '2022-04-04 16:00:00'
         domain = config.DEFAULT_DOMAIN
         type = config.DEFAULT_TYPE
         courier_ids = []  # config.COURIER_IDS
@@ -34,9 +34,6 @@ def main():
         courier_ids = []
 
     domains = domain.split(',')
-
-    print("Start date:", start_date)
-    print("End date:", end_date)
 
     for pair in get_date_pairs(start_date, end_date):
         start, end = pair
@@ -113,18 +110,15 @@ def get_routes_and_process(chunk_df, domains, domain_type, start_date, end_date)
     total_processed_routes_for_reach_to_merchant = 0
     total_processed_orders_for_delivery = 0
 
-    # Added to eliminate orders with no route, because of in case of orders (chunk_df) have no
-    # route_id (delivery_route_id), in DataProcessor it gets error while merging with routes.
-    chunk_df = chunk_df[chunk_df.delivery_route_oid.notna()]
+
     print('in fetch_orders_df. Shape:', chunk_df.shape)
 
     if chunk_df.size > 0:
 
-        route_ids = list(chunk_df['delivery_route_oid'].dropna().unique())
-        courier_ids = list(chunk_df['courier_courier_oid'].dropna().unique())
+        order_ids = tuple(chunk_df._id_oid.unique())
 
-        routes = Route(
-            route_ids, ROUTES_COLLECTION, config.TEST, REDSHIFT_ETL)
+        routes = Route(start_date, end_date, ROUTES_COLLECTION, config.TEST, REDSHIFT_ETL, ATHENA,
+                       order_ids, domain_type)
         routes_df = routes.fetch_routes_df()
         print('Routes fetched:', len(routes_df))
 
@@ -145,25 +139,33 @@ def get_routes_and_process(chunk_df, domains, domain_type, start_date, end_date)
             print("Total Processed Routes for Depart: ", total_processed_routes_for_depart)
 
         if 'depart_from_client' in domains and domain_type not in (2, 6):
-            from src.CourierTrajectory import CourierTrajectory
-            trajectories = CourierTrajectory(courier_ids, start_date, end_date).fetch()
-            print('Return trajectories fetched:', len(trajectories))
-            depart_from_client_dict = depart_from_client_main(chunk_df, routes_df, trajectories,
-                                                              reach_predictions[reach_predictions.time.notna()][['_id_oid', 'time']].rename(columns={'time': 'predicted_reach_date'}))
+            reach_predictions = reach_predictions[reach_predictions.time.notna()][['_id_oid', 'time']].\
+                rename(columns={'time': 'predicted_reach_date'}).copy()
+            depart_from_client_dict = depart_from_client_main(chunk_df, routes_df, reach_predictions)
             processed_depart_from_client_orders = depart_from_client_dict.get('routes')
             total_processed_routes_for_depart_from_client += processed_depart_from_client_orders
             print("Total Processed Routes for Depart from Client: ", total_processed_routes_for_depart_from_client)
             depart_from_client_predictions = depart_from_client_dict.get('preds')
+
+        if 'depart' in domains and domain_type not in (2, 6):
+            processed_depart_orders = depart_main(chunk_df, routes_df)
+            total_processed_routes_for_depart += processed_depart_orders
+            print("Total Processed Routes for Depart: ", total_processed_routes_for_depart)
+
+
+        if 'deliver' in domains and domain_type not in (2, 6):
+            reach_predictions = reach_predictions.rename(columns={'predicted_reach_date': 'time'}).copy()
+            result_dict = deliver_main(reach_predictions, depart_from_client_predictions)
+            total_processed_orders_for_delivery += result_dict.get('orders')
+            print("Total Processed Orders For Delivery : ", total_processed_orders_for_delivery)
+
 
         if 'reach_to_merchant' in domains and domain_type in (2, 6):
             processed_reach_to_merchant_orders = reach_to_merchant_main(chunk_df, routes_df, domain_type)
             total_processed_routes_for_reach_to_merchant += processed_reach_to_merchant_orders
             print("Total Processed Routes For Reach To Merchant : ", total_processed_routes_for_reach_to_merchant)
 
-        if 'deliver' in domains and domain_type not in (2, 6):
-            result_dict = deliver_main(reach_predictions, depart_from_client_predictions)
-            total_processed_orders_for_delivery += result_dict.get('orders')
-            print("Total Processed Orders For Delivery : ", total_processed_orders_for_delivery)
+
 
     with WRITE_ENGINE.begin() as connection:
         remove_duplicates(connection, config.REACH_TABLE_NAME, 'prediction_id', ['order_id'], config.SCHEMA_NAME)
@@ -204,8 +206,6 @@ def reach_main(chunk_df: pd.DataFrame, routes_df: pd.DataFrame):
 
 def reach_to_merchant_main(chunk_df: pd.DataFrame, routes_df: pd.DataFrame, domain_type):
     print('Length:', len(chunk_df), 'NA column counts:', chunk_df.isna().sum()[chunk_df.isna().sum().gt(0)].to_dict())
-    chunk_df = chunk_df[chunk_df['delivery_route_oid'].notna()].copy()
-
     order_ids = pd.DataFrame(chunk_df['_id_oid'], columns=['_id_oid'])
     processed_data = ReachToMerchantDataProcessor(
         orders=chunk_df, routes=routes_df, minimum_location_limit=config.MINIMUM_LOCATION_LIMIT,
@@ -255,10 +255,10 @@ def depart_main(chunk_df: pd.DataFrame, routes_df: pd.DataFrame):
     return chunk_df['delivery_route_oid'].nunique()
 
 
-def depart_from_client_main(chunk_df: pd.DataFrame, routes_df: pd.DataFrame, trajectory_df: pd.DataFrame, reach_predictions_df: pd.DataFrame):
+def depart_from_client_main(chunk_df: pd.DataFrame, routes_df: pd.DataFrame, reach_predictions_df: pd.DataFrame):
     order_ids = pd.DataFrame(chunk_df['_id_oid'], columns=['_id_oid'])
     processed_data = DepartFromClientDataProcessor(
-        orders=chunk_df, routes=routes_df, trajectories=trajectory_df,
+        orders=chunk_df, routes=routes_df,
         minimum_location_limit=config.MINIMUM_LOCATION_LIMIT).process()
 
     single_predictor = DepartFromClientLogisticReachSinglePredictor(config.DEPART_FROM_CLIENT_INTERCEPT,

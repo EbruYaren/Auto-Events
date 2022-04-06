@@ -45,6 +45,7 @@ class Order:
                                     group by data_foodorder) l ON f._id_oid = l.artisan_order_id
                         LEFT JOIN project_auto_events.reach_to_restaurant_date_prediction rdp ON rdp.order_id = f._id_oid
                                 WHERE f.status in (900, 1000)
+                                AND f.deliverytype = 1 
                                 AND rdp.order_id isnull
                                 AND f.deliverdate BETWEEN  '{start_date}' AND  '{end_date}'
                                  {courier_filter}
@@ -70,6 +71,7 @@ class Order:
                                     LEFT JOIN project_auto_events.reach_to_shop_date_prediction rdp ON rdp.order_id = f._id_oid
                                             WHERE f.status in (900, 1000)
                                             AND rdp.order_id isnull
+                                            AND f.deliverytype = 1 
                                             AND f.deliverdate BETWEEN  '{start_date}' AND  '{end_date}'
                                              {courier_filter}
                 """
