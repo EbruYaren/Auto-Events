@@ -20,7 +20,7 @@ class FillUnpredictedDepartBatches:
            COUNT(mo.delivery_batch_index) as batch_count,
            COUNT(p.predicted_depart_date) as pred_count
         from project_auto_events.depart_date_prediction p
-        join etl_market_order.marketorders mo ON p.order_id = mo._id_oid
+        inner join etl_market_order.marketorders mo ON p.order_id = mo._id_oid
         where p.predictedat between \'{}\' and \'{}\' AND mo.status in (900, 1000) AND mo.domaintype in (1, 3)
         group by mo.delivery_job_oid
         having batch_count > 1 AND pred_count >= 1 AND pred_count < batch_count;
