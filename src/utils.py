@@ -13,6 +13,7 @@ from sqlalchemy.schema import CreateTable
 from sqlalchemy import VARCHAR, FLOAT, INTEGER, BOOLEAN, TIMESTAMP
 import numpy as np
 from sqlalchemy import MetaData, Table, Column
+import pandas as pd
 
 
 def cache(func):
@@ -248,6 +249,21 @@ def get_run_params():
     parser.add_argument("-ed", "--end_date", default=str(now),
                         help="End Date of the time interval of the cron")
     parser.add_argument('-d', '--domain', default=config.DEFAULT_DOMAIN)
+    if start.hour == 20:
+        type = config.WITH_PERIOD_TYPE
+    else:
+        type = config.DEFAULT_TYPE
+    parser.add_argument('-t', '--type', default=type)
+
+    if 'PERIOD' in type:
+        p_start = pd.to_datetime(start) - timedelta(hours=20, minutes=30)
+        p_end = pd.to_datetime(p_start) + timedelta(hours=25)
+
+        parser.add_argument("-p_sd", "--period_start_date", default=str(p_start),
+                            help="Start Date of the time interval of the cron")
+        parser.add_argument("-p_ed", "--period_end_date", default=str(p_end),
+                            help="End Date of the time interval of the cron")
+
     parsed = parser.parse_args()
     assert parsed.domain in config.DOMAIN_LIST, 'Domain must be one of ' + str(config.DOMAIN_LIST)
 

@@ -5,22 +5,28 @@ from src.DataProcessor import ReachDataProcessor, DepartDataProcessor, DepartFro
     ReachToMerchantDataProcessor
 from src.Predictor import *
 from src.Writer import Writer
-from src import REDSHIFT_ETL, WRITE_ENGINE, ENGINE_BITEST
+from src import REDSHIFT_ETL, WRITE_ENGINE
 from src.utils import timer, get_run_params, get_date_pairs
 from src.data_access import grant_access, create_table, remove_duplicates, drop_table
+from src import FillUnpredictedDepartBatches
+from src.FillUnpredictedDepartBatches import FillUnpredictedDepartBatches
 
 
 @timer()
 def main():
     print("Cron started")
 
+    params = {}
+
     if config.TEST:
         start_date = '2022-01-16 18:30:00'
         end_date = '2022-01-16 20:00:00'
         domain = config.DEFAULT_DOMAIN
+        type = config.DEFAULT_TYPE
         courier_ids = []  # config.COURIER_IDS
     else:
         params = get_run_params()
+        type = params.type
         start_date = params.start_date
         end_date = params.end_date
         domain = params.domain
@@ -28,9 +34,20 @@ def main():
 
     domains = domain.split(',')
 
+    print("Start date:", start_date)
+    print("End date:", end_date)
+
     for pair in get_date_pairs(start_date, end_date):
         start, end = pair
         run(start, end, domains, courier_ids)
+
+    if 'PERIOD' in type:
+        start = params.period_start_date
+        end = params.period_end_date
+        FillUnpredictedDepartBatches(start, end).fill()
+        print('Batched orders between {} and {} are copied for depart from warehouse event. '.format(start, end))
+
+
 
 
 def run(start_date: str, end_date: str, domains: list, courier_ids: list):
@@ -86,6 +103,7 @@ def run(start_date: str, end_date: str, domains: list, courier_ids: list):
         get_routes_and_process(chunk_df, domains, 2, start_date, end_date)
     for chunk_df in artisan_orders.fetch_orders_df():
         get_routes_and_process(chunk_df, domains, 6, start_date, end_date)
+
 
 def get_routes_and_process(chunk_df, domains, domain_type, start_date, end_date):
     total_processed_routes_for_reach = 0
@@ -283,6 +301,7 @@ def deliver_main(reach_df: pd.DataFrame, depart_from_client_df: pd.DataFrame):
     }
 
     return dict
+
 
 if __name__ == '__main__':
     main()

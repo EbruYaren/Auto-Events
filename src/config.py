@@ -161,3 +161,9 @@ DOMAIN_LIST = ['depart', 'reach', 'depart,reach', 'depart_from_client', 'depart,
                'reach_to_merchant', 'deliver', 'depart,reach,depart_from_client,reach_to_merchant',
                'depart,reach,depart_from_client,reach_to_merchant,deliver']
 DEFAULT_DOMAIN = 'depart,reach,depart_from_client,reach_to_merchant,deliver'
+
+
+DEFAULT_TYPE = 'HOURLY'
+
+WITH_PERIOD_TYPE = 'HOURLY,PERIOD'
+
