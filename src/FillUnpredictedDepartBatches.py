@@ -26,8 +26,8 @@ class FillUnpredictedDepartBatches:
         having batch_count > 1 AND pred_count >= 1 AND pred_count < batch_count;
         """.format(self.__start_date, self.__end_date)
 
-        REDSHIFT_ETL.cursor().execute(query)
-        # REDSHIFT_ETL.execute(query)
+        # REDSHIFT_ETL.cursor().execute(query)
+        REDSHIFT_ETL.execute(query)
 
         query = """
             select mo._id_oid, mo.delivery_job_oid, mo.delivery_batch_index, p.prediction_id,  p.order_id, p.predicted_depart_date, p.predicted_depart_datel,
@@ -68,8 +68,8 @@ class FillUnpredictedDepartBatches:
                                 WHERE order_id = \'{}\' ;
                         """.format(predicted_depart_date, predicted_depart_datel, latitude, longitude, order_id)
 
-                        pd.read_sql(query, REDSHIFT_ETL)
-                        # REDSHIFT_ETL.execute(query)
+                        # pd.read_sql(query, REDSHIFT_ETL)
+                        REDSHIFT_ETL.execute(query)
 
         predictions = pd.DataFrame(rows)
 
