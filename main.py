@@ -288,9 +288,7 @@ def deliver_main(reach_df: pd.DataFrame, depart_from_client_df: pd.DataFrame):
     orders = depart_from_client_df['_id_oid'].nunique()
     delivery_predictions['time'] = delivery_predictions['time_x'] + (
                 delivery_predictions['time_y'] - delivery_predictions['time_x']) / 2
-    delivery_predictions = delivery_predictions[['_id_oid', 'time', 'deliver_location__coordinates_lat',
-                                                 'deliver_location__coordinates_lon']]
-    delivery_predictions.rename(columns={'deliver_location__coordinates_lat': 'lat', 'deliver_location__coordinates_lon': 'lon'}, inplace=True)
+    delivery_predictions = delivery_predictions[['_id_oid', 'time', 'lat', 'lon']]
 
     writer = Writer(delivery_predictions, WRITE_ENGINE, config.DELIVERY_TABLE_NAME, config.SCHEMA_NAME,
                     config.DELIVERY_TABLE_COLUMNS)
