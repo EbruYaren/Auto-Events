@@ -8,6 +8,7 @@ from src.Writer import Writer
 from src import REDSHIFT_ETL, WRITE_ENGINE
 from src.utils import timer, get_run_params, get_date_pairs
 from src.data_access import grant_access, create_table, remove_duplicates, drop_table
+from src import ATHENA
 from src import FillUnpredictedDepartBatches
 from src.FillUnpredictedDepartBatches import FillUnpredictedDepartBatches
 
