@@ -100,7 +100,7 @@ class Order:
         else:
             # run for first time rows
             prediction_table = 'depart_from_client_date_prediction'
-            null_filter = "AND (rdp.order_id isnull or rdp.predicted_depart_from_client_date is null)"
+            null_filter = "AND (rdp.order_id isnull OR rdp.predicted_depart_from_client_date is null)"
 
         if len(self.__courier_ids) == 0:
             courier_filter = ''
