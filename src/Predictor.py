@@ -1,6 +1,7 @@
 import abc
 from math import log, e
 import pandas as pd
+import pytz
 
 
 class SinglePredictor(abc.ABC):
@@ -34,7 +35,10 @@ class ReachBulkPredictor:
             lambda row: self.__predictor.predict(row['distance_bin'], row['time_passed_in_bin']), axis='columns')
         reached = self.__processed_data[self.__processed_data['is_reached']]
         reached['row_number'] = reached.groupby('_id_oid')['time'].rank(method='min')
-        predictions = reached[reached['row_number'] == 1][['_id_oid', 'time', 'lat', 'lon']]
+        predictions = reached[reached['row_number'] == 1][['_id_oid', 'time', 'lat', 'lon', 'time_zone']]
+        predictions['time_l'] = predictions.apply(
+           lambda row: row.time.replace(tzinfo=pytz.utc).astimezone(row.time_zone).strftime('%Y-%m-%dT%H:%M:%S.%f')
+           , axis='columns')
 
         return predictions
 
@@ -59,24 +63,6 @@ class DepartLogisticReachSinglePredictor(SinglePredictor):
         return True if output >= .5  else False
 
 
-class DepartFromClientLogisticReachSinglePredictor(SinglePredictor):
-
-    def __init__(self, intercept: float, coefficients: list):
-        self.__intercept = intercept
-        self.__coefficients = coefficients
-
-    def predict(
-            self, smooth_speed_to_client: float, smooth_speed_to_prev_event: float,
-            distance_to_client_log: float):
-        Z = self.__coefficients[0] * smooth_speed_to_client + self.__coefficients[1] * smooth_speed_to_prev_event + \
-            self.__coefficients[2] * distance_to_client_log + self.__intercept
-
-        try:
-            output = 1 / (1 + e ** (-Z))
-        except OverflowError as err:
-            return False
-
-        return True if output >= .5 else False
 
 
 class DepartBulkPredictor:
@@ -109,8 +95,12 @@ class DepartBulkPredictor:
         pred_rows['last_false'] = pred_rows['rn'].apply(lambda r: r - 1 if r > 1 else r)
         pred_rows.drop('rn', axis='columns', inplace=True)
         df = df.merge(pred_rows, on='_id_oid')
-        labeled_times = df[df['rn'] == df['last_false']][['_id_oid', 'time', 'lat', 'lon']] \
-            .drop_duplicates()
+        labeled_times = df[df['rn'] == df['last_false']]
+        labeled_times['time_l'] = labeled_times.apply(
+            lambda row: row.time.replace(tzinfo=pytz.utc).astimezone(row.time_zone).strftime('%Y-%m-%dT%H:%M:%S.%f')
+            , axis='columns')
+
+        labeled_times = labeled_times[['_id_oid', 'time', 'lat', 'lon', 'time_l']].drop_duplicates().copy()
 
         # Getting unpredicted batched orders data
         rows = self.get_unpredicted_batched_orders(labeled_times)
@@ -130,6 +120,7 @@ class DepartBulkPredictor:
                 rows.append({
                     '_id_oid': first_row._id_oid.values[0],
                     'time': first_row['time'].values[0],
+                    'time_l': first_row['time_l'].values[0],
                     'lat': first_row['lat'].values[0],
                     'lon': first_row['lon'].values[0],
                 })
@@ -144,12 +135,38 @@ class DepartBulkPredictor:
                             rows.append({
                                 '_id_oid': r._id_oid,
                                 'time': first_row['time'].values[0],
+                                'time_l': first_row['time_l'].values[0],
                                 'lat': first_row['lat'].values[0],
                                 'lon': first_row['lon'].values[0],
                             })
 
         rows = pd.DataFrame(rows)
         return rows
+
+
+
+
+
+class DepartFromClientLogisticReachSinglePredictor(SinglePredictor):
+
+    def __init__(self, intercept: float, coefficients: list):
+        self.__intercept = intercept
+        self.__coefficients = coefficients
+
+    def predict(
+            self, smooth_speed_to_client: float, smooth_speed_to_prev_event: float,
+            distance_to_client_log: float):
+        Z = self.__coefficients[0] * smooth_speed_to_client + self.__coefficients[1] * smooth_speed_to_prev_event + \
+            self.__coefficients[2] * distance_to_client_log + self.__intercept
+
+        try:
+            output = 1 / (1 + e ** (-Z))
+        except OverflowError as err:
+            return False
+
+        return True if output >= .5 else False
+
+
 
 
 class DepartFromClientBulkPredictor:
@@ -183,6 +200,11 @@ class DepartFromClientBulkPredictor:
         df = df.merge(pred_rows, on='_id_oid')
 
         labeled_times = df[(df['rn'] == df['last_false']) & (df['time'] >= df['predicted_reach_date']) & (df['time'] >= df['reach_date'])][
-            ['_id_oid', 'time', 'lat', 'lon']].drop_duplicates()
+            ['_id_oid', 'time', 'lat', 'lon', 'time_zone']].drop_duplicates()
+
+        labeled_times['time_l'] = labeled_times.apply(
+           lambda row: row.time.replace(tzinfo=pytz.utc).astimezone(row.time_zone).strftime('%Y-%m-%dT%H:%M:%S.%f')
+           , axis='columns')
+
 
         return labeled_times
