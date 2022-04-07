@@ -249,15 +249,15 @@ def get_run_params():
     parser.add_argument("-ed", "--end_date", default=str(now),
                         help="End Date of the time interval of the cron")
     parser.add_argument('-d', '--domain', default=config.DEFAULT_DOMAIN)
-    if start.hour == 20:
+    if start.hour == 0:
         type = config.WITH_PERIOD_TYPE
     else:
         type = config.DEFAULT_TYPE
     parser.add_argument('-t', '--type', default=type)
 
     if 'PERIOD' in type:
-        p_start = pd.to_datetime(start) - timedelta(hours=20, minutes=30)
-        p_end = pd.to_datetime(p_start) + timedelta(hours=25)
+        p_start = pd.to_datetime(start) - timedelta(hours=25, minutes=30)
+        p_end = pd.to_datetime(start) + timedelta(hours=1)
 
         parser.add_argument("-p_sd", "--period_start_date", default=str(p_start),
                             help="Start Date of the time interval of the cron")
