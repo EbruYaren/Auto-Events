@@ -26,7 +26,6 @@ class Order:
         AND domaintype in (1,3)
         {courier_filter}
         ORDER BY courier_courier_oid, deliver_date
-        LIMIT 200
     """
 
     # getting food orders
