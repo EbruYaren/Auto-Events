@@ -115,7 +115,7 @@ def get_routes_and_process(chunk_df, domains, domain_type, start_date, end_date)
 
     if chunk_df.size > 0:
 
-        order_ids = tuple(chunk_df._id_oid.unique())
+        order_ids = list(chunk_df._id_oid.unique())
 
         routes = Route(start_date, end_date, ROUTES_COLLECTION, config.TEST, REDSHIFT_ETL, ATHENA,
                        order_ids, domain_type)

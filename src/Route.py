@@ -22,19 +22,32 @@ class Route:
     def __get_trajectories(self, order_filter=None, select_filter=None):
 
         if self.__domain_type == 1:
-            order_filter = 'market_order_id IN ' + self.__order_ids.__str__() + ' OR prev_market_order_id IN ' + self.__order_ids.__str__()
+            if len(self.__order_ids) == 0:
+                order_filter = ''
+            else:
+                in_clause = self._create_in_clause(self.__order_ids)
+                order_filter = 'market_order_id IN {} OR prev_market_order_id IN {}'.format(in_clause, in_clause)
+
             select_filter = """CASE WHEN orderid != 'null' THEN orderid END AS market_order_id,   \
                             COALESCE(CASE WHEN orderid != 'null' THEN orderid END, lag(CASE WHEN orderid != 'null' THEN 
                             orderid END, 1) IGNORE NULLS OVER(PARTITION BY courierid ORDER BY createdat)) AS prev_market_order_id"""
 
         elif self.__domain_type == 2:
-            order_filter = 'food_order_id IN ' + self.__order_ids.__str__() + ' OR prev_food_order_id IN ' + self.__order_ids.__str__()
+            if len(self.__order_ids) == 0:
+                order_filter = ''
+            else:
+                in_clause = self._create_in_clause(self.__order_ids)
+                order_filter = 'food_order_id IN {} OR prev_food_order_id IN {}'.format(in_clause, in_clause)
             select_filter = """CASE WHEN foodorder != 'null' THEN foodorder END AS food_order_id,   \
                              COALESCE(CASE WHEN foodorder != 'null' THEN foodorder END, lag(CASE WHEN foodorder != 'null' THEN 
                              foodorder END, 1) IGNORE NULLS OVER(PARTITION BY courierid ORDER BY createdat)) AS prev_food_order_id"""
 
         elif self.__domain_type == 6:
-            order_filter = 'artisan_order_id IN ' + self.__order_ids.__str__() + ' OR prev_artisan_order_id IN ' + self.__order_ids.__str__()
+            if len(self.__order_ids) == 0:
+                order_filter = ''
+            else:
+                in_clause = self._create_in_clause(self.__order_ids)
+                order_filter = 'artisan_order_id IN {} OR prev_artisan_order_id IN {}'.format(in_clause, in_clause)
             select_filter = """CASE WHEN artisanorder != 'null' THEN artisanorder END AS artisan_order_id,   \
                              COALESCE(CASE WHEN artisanorder != 'null' THEN artisanorder END, lag(CASE WHEN artisanorder != 'null' THEN 
                              artisanorder END, 1) IGNORE NULLS OVER(PARTITION BY courierid ORDER BY createdat)) AS prev_artisan_order_id"""
