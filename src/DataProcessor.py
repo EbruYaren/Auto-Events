@@ -176,7 +176,7 @@ class DepartDataProcessor(DataProcessor):
         return data.dropna()
 
     def process(self):
-        m_df = self.merged_df.copy()
+        m_df = self.merged_df.drop_duplicates().copy()
         counts = m_df.groupby('route_id')['time'].count()
         filtered_ids = counts[counts >= self.minimum_location_limit].index
         m_df = m_df[m_df['route_id'].isin(filtered_ids)]
@@ -239,7 +239,7 @@ class DepartFromClientDataProcessor(DataProcessor):
     def process(self):
         # Add returning logs
         m_df = self.routes.merge(self.orders, left_on="route_id", right_on="_id_oid", how="inner")
-
+        m_df = m_df.drop_duplicates()
         # Add next route into tail
         job_routes = m_df.groupby(['delivery_job_oid', 'route_id'])['time'].max().reset_index().sort_values(['delivery_job_oid', 'time'])
         job_routes['prev_route_id'] = job_routes.groupby('delivery_job_oid')['route_id'].shift()
