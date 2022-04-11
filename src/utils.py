@@ -249,7 +249,7 @@ def get_run_params():
     parser.add_argument("-ed", "--end_date", default=str(now),
                         help="End Date of the time interval of the cron")
     parser.add_argument('-d', '--domain', default=config.DEFAULT_DOMAIN)
-    if start.hour == 20:
+    if start.hour == 100:
         type = config.WITH_PERIOD_TYPE
     else:
         type = config.DEFAULT_TYPE
