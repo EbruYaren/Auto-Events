@@ -13,7 +13,6 @@ class Writer:
         self.__table_columns = table_cols
 
     def __prepare_columns(self):
-        self.__predictions['time_l'] = self.__predictions['time'] + timedelta(hours=3)
         self.__predictions = self.__predictions[['_id_oid', 'time', 'time_l', 'lat', 'lon']]
         self.__predictions.columns = self.__table_columns
 

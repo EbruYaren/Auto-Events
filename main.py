@@ -12,7 +12,6 @@ from src import ATHENA
 from src import FillUnpredictedDepartBatches
 from src.FillUnpredictedDepartBatches import FillUnpredictedDepartBatches
 
-
 @timer()
 def main():
     print("Cron started")
@@ -103,6 +102,8 @@ def run(start_date: str, end_date: str, domains: list, courier_ids: list):
         get_routes_and_process(chunk_df, domains, 6, start_date, end_date)
 
 
+
+
 def get_routes_and_process(chunk_df, domains, domain_type, start_date, end_date):
     total_processed_routes_for_reach = 0
     total_processed_routes_for_depart = 0
@@ -139,7 +140,7 @@ def get_routes_and_process(chunk_df, domains, domain_type, start_date, end_date)
             print("Total Processed Routes for Depart: ", total_processed_routes_for_depart)
 
         if 'depart_from_client' in domains and domain_type not in (2, 6):
-            reach_predictions = reach_predictions[reach_predictions.time.notna()][['_id_oid', 'time']].\
+            reach_predictions = reach_predictions[reach_predictions.time.notna()][['_id_oid', 'time', 'time_l']].\
                 rename(columns={'time': 'predicted_reach_date'}).copy()
             depart_from_client_dict = depart_from_client_main(chunk_df, routes_df, reach_predictions)
             processed_depart_from_client_orders = depart_from_client_dict.get('routes')
@@ -288,7 +289,11 @@ def deliver_main(reach_df: pd.DataFrame, depart_from_client_df: pd.DataFrame):
     orders = depart_from_client_df['_id_oid'].nunique()
     delivery_predictions['time'] = delivery_predictions['time_x'] + (
                 delivery_predictions['time_y'] - delivery_predictions['time_x']) / 2
-    delivery_predictions = delivery_predictions[['_id_oid', 'time', 'lat', 'lon']]
+    delivery_predictions['time_l_x'] = pd.to_datetime(delivery_predictions['time_l_x'])
+    delivery_predictions['time_l_y'] = pd.to_datetime(delivery_predictions['time_l_y'])
+    delivery_predictions['time_l'] = delivery_predictions['time_l_x'] + (
+                delivery_predictions['time_l_y'] - delivery_predictions['time_l_x']) / 2
+    delivery_predictions = delivery_predictions[['_id_oid', 'time', 'time_l', 'lat', 'lon']]
 
     writer = Writer(delivery_predictions, WRITE_ENGINE, config.DELIVERY_TABLE_NAME, config.SCHEMA_NAME,
                     config.DELIVERY_TABLE_COLUMNS)
