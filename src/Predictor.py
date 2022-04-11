@@ -100,9 +100,14 @@ class DepartBulkPredictor:
         pred_rows.drop('rn', axis='columns', inplace=True)
         df = df.merge(pred_rows, on='_id_oid')
         labeled_times = df[df['rn'] == df['last_false']]
-        labeled_times['time_l'] = labeled_times.apply(
-            lambda row: row.time.replace(tzinfo=pytz.utc).astimezone(row.time_zone).strftime('%Y-%m-%dT%H:%M:%S.%f')
-            , axis='columns')
+
+        if labeled_times.size > 0:
+            labeled_times['time_l'] = labeled_times.apply(
+                lambda row: row.time.replace(tzinfo=pytz.utc).astimezone(row.time_zone).strftime('%Y-%m-%dT%H:%M:%S.%f')
+                , axis='columns')
+        else:
+            labeled_times.rename(columns={'time_zone': 'time_l'}, inplace=True)
+
 
         labeled_times = labeled_times[['_id_oid', 'time', 'lat', 'lon', 'time_l']].drop_duplicates().copy()
 
@@ -206,9 +211,13 @@ class DepartFromClientBulkPredictor:
         labeled_times = df[(df['rn'] == df['last_false']) & (df['time'] >= df['predicted_reach_date']) & (df['time'] >= df['reach_date'])][
             ['_id_oid', 'time', 'lat', 'lon', 'time_zone']].drop_duplicates()
 
-        labeled_times['time_l'] = labeled_times.apply(
-           lambda row: row.time.replace(tzinfo=pytz.utc).astimezone(row.time_zone).strftime('%Y-%m-%dT%H:%M:%S.%f')
-           , axis='columns')
+        if labeled_times.size > 0:
+            labeled_times['time_l'] = labeled_times.apply(
+               lambda row: row.time.replace(tzinfo=pytz.utc).astimezone(row.time_zone).strftime('%Y-%m-%dT%H:%M:%S.%f')
+               , axis='columns')
+
+        else:
+            labeled_times.rename(columns={'time_zone': 'time_l'}, inplace=True)
 
 
         return labeled_times
