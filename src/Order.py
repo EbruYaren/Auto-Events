@@ -33,7 +33,8 @@ class Order:
                                f.checkoutdatel, f.deliverdate as deliver_date, f.reachdate as reach_date, f.handoverdate, 
                                f.deliveryaddress_location__coordinates_lon, f.deliveryaddress_location__coordinates_lat, f.restaurantloc_lon, f.restaurantloc_lat,
                                l.reached_to_restaurant_lat, l.reached_to_restaurant_lon, l.reached_to_restaurant_createdatl, l.reached_to_client_lat,
-                               l.reached_to_client_lon, l.reached_to_client_createdatl, 2 as domaintype
+                               l.reached_to_client_lon, l.reached_to_client_createdatl, 2 as domaintype,
+                               'Europe/Istanbul' as time_zone
                         from etl_food_order.foodorders f
                         LEFT JOIN (select  data_foodorder as artisan_order_id,
                                            MAX(case when data_method = 'courierReachedToRestaurant' then location__coordinates_lat end) as reached_to_restaurant_lat,
@@ -58,7 +59,8 @@ class Order:
                                     f.deliveryaddress_location__coordinates_lon, f.deliveryaddress_location__coordinates_lat,
                                     f.restaurantloc_lon, f.restaurantloc_lat,
                                     l.reached_to_restaurant_lat, l.reached_to_restaurant_lon, l.reached_to_restaurant_createdatl, l.reached_to_client_lat, 
-                                    l.reached_to_client_lon, l.reached_to_client_createdatl, 6 as domaintype
+                                    l.reached_to_client_lon, l.reached_to_client_createdatl, 6 as domaintype,
+                               'Europe/Istanbul' as time_zone
                                     from etl_artisan_order.foodorders f
                                     LEFT JOIN (select  data_foodorder as artisan_order_id,
                                                        MAX(case when data_method = 'courierReachedToRestaurant' then location__coordinates_lat end) as reached_to_restaurant_lat,
