@@ -40,6 +40,9 @@ class ReachBulkPredictor:
             predictions['time_l'] = predictions.apply(
                lambda row: row.time.replace(tzinfo=pytz.utc).astimezone(row.time_zone).strftime('%Y-%m-%dT%H:%M:%S.%f')
                , axis='columns')
+        else:
+            predictions.rename(columns={'time_zone': 'time_l'}, inplace=True)
+
 
         return predictions
 
