@@ -11,8 +11,6 @@ from src.data_access import grant_access, create_table, remove_duplicates, drop_
 from src import ATHENA
 from src import FillUnpredictedDepartBatches
 from src.FillUnpredictedDepartBatches import FillUnpredictedDepartBatches
-from src.UpdateCountryLocalTimes import CountryLocalTimes
-
 
 @timer()
 def main():
@@ -45,12 +43,6 @@ def main():
         end = params.period_end_date
         FillUnpredictedDepartBatches(start, end).fill()
         print('Batched orders between {} and {} are copied for depart from warehouse event. '.format(start, end))
-
-
-# will run once at midnight because could not get write permission
-    if start_date == '2022-04-09 01:30:00':
-        CountryLocalTimes().fill()
-        print("Countries local time updated by time zones. ")
 
 
 
@@ -108,6 +100,8 @@ def run(start_date: str, end_date: str, domains: list, courier_ids: list):
         get_routes_and_process(chunk_df, domains, 2, start_date, end_date)
     for chunk_df in artisan_orders.fetch_orders_df():
         get_routes_and_process(chunk_df, domains, 6, start_date, end_date)
+
+
 
 
 def get_routes_and_process(chunk_df, domains, domain_type, start_date, end_date):
