@@ -36,9 +36,10 @@ class ReachBulkPredictor:
         reached = self.__processed_data[self.__processed_data['is_reached']]
         reached['row_number'] = reached.groupby('_id_oid')['time'].rank(method='min')
         predictions = reached[reached['row_number'] == 1][['_id_oid', 'time', 'lat', 'lon', 'time_zone']]
-        predictions['time_l'] = predictions.apply(
-           lambda row: row.time.replace(tzinfo=pytz.utc).astimezone(row.time_zone).strftime('%Y-%m-%dT%H:%M:%S.%f')
-           , axis='columns')
+        if predictions.size > 0:
+            predictions['time_l'] = predictions.apply(
+               lambda row: row.time.replace(tzinfo=pytz.utc).astimezone(row.time_zone).strftime('%Y-%m-%dT%H:%M:%S.%f')
+               , axis='columns')
 
         return predictions
 
