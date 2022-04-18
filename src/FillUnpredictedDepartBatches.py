@@ -2,18 +2,20 @@ import numpy as np
 import pandas as pd
 
 from src import REDSHIFT_ETL
+from sqlalchemy import create_engine
 
 
 class FillUnpredictedDepartBatches:
 
     def __init__(self, start_date: str, end_date: str):
 
-        self.__start_date = start_date
-        self.__end_date = end_date
+        self.__start_date = '2022-04-01'
+        self.__end_date = '2022-04-18'
 
 
     def fill(self):
 
+        conn = create_engine(REDSHIFT_ETL)
 
         query = """create table #job_oids as
         select mo.delivery_job_oid, listagg(mo.delivery_batch_index, ', ') as batches,
@@ -26,8 +28,8 @@ class FillUnpredictedDepartBatches:
         having batch_count > 1 AND pred_count >= 1 AND pred_count < batch_count;
         """.format(self.__start_date, self.__end_date)
 
-        # REDSHIFT_ETL.cursor().execute(query)
-        REDSHIFT_ETL.execute(query)
+        conn.execute(query)
+        # REDSHIFT_ETL.execute(query)
 
         query = """
             select mo._id_oid, mo.delivery_job_oid, mo.delivery_batch_index, p.prediction_id,  p.order_id, p.predicted_depart_date, p.predicted_depart_datel,
@@ -39,7 +41,7 @@ class FillUnpredictedDepartBatches:
         """
 
 
-        df = pd.read_sql(query, REDSHIFT_ETL)
+        df = pd.read_sql(query, conn)
         df.columns = ['_id_oid', 'delivery_job_oid', 'delivery_batch_index', 'prediction_id', 'order_id',
                       'predicted_depart_date', 'predicted_depart_datel', 'latitude', 'longitude', 'predictedat']
         rows = []
@@ -69,7 +71,7 @@ class FillUnpredictedDepartBatches:
                         """.format(predicted_depart_date, predicted_depart_datel, latitude, longitude, order_id)
 
                         # pd.read_sql(query, REDSHIFT_ETL)
-                        REDSHIFT_ETL.execute(query)
+                        conn.execute(query)
 
         predictions = pd.DataFrame(rows)
 
