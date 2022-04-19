@@ -36,7 +36,7 @@ def main():
     domains = domain.split(',')
 
 
-    data_from_sql_file('./sql/depart_batches.sql')
+    # data_from_sql_file('./sql/depart_batches.sql')
 
     print('Batched orders are copied for depart from warehouse event. ')
 
