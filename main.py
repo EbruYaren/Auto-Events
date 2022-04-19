@@ -11,6 +11,7 @@ from src.data_access import grant_access, create_table, remove_duplicates, drop_
 from src import ATHENA
 from src import FillUnpredictedDepartBatches
 from src.FillUnpredictedDepartBatches import FillUnpredictedDepartBatches
+from src.data_access import data_from_sql_file
 
 
 @timer()
@@ -34,6 +35,10 @@ def main():
         courier_ids = []
 
     domains = domain.split(',')
+
+    data_from_sql_file('./sql/depart_batches.sql')
+
+    print('Batched orders are copied for depart from warehouse event. ')
 
     print("Start date:", start_date)
     print("End date:", end_date)

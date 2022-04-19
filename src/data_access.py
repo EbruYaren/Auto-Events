@@ -1,5 +1,6 @@
 import time
 from src.utils import cache, timer
+from src import REDSHIFT_ETL, WRITE_ENGINE
 
 
 class DataAccess:
@@ -70,5 +71,16 @@ def grant_access(connection, table_name, schema_name='public', group='data_rw'):
         grant_status = False
     return grant_status
 
+
+
+def data_from_sql_file(sql_file):
+    with open(sql_file) as file:
+        query_temp = file.read()
+    query = query_temp.format()
+
+    return REDSHIFT_ETL.execute(query)
+
+
+
 if __name__ == '__main__':
-    print(remove_duplicates('', 'reah_date_prediction', 'prediction_id', ['order_id'], qg=True))
+    print(remove_duplicates('', 'reach_date_prediction', 'prediction_id', ['order_id'], qg=True))
