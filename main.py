@@ -9,8 +9,6 @@ from src import REDSHIFT_ETL, WRITE_ENGINE
 from src.utils import timer, get_run_params, get_date_pairs
 from src.data_access import grant_access, create_table, remove_duplicates, drop_table
 from src import ATHENA
-from src import FillUnpredictedDepartBatches
-from src.FillUnpredictedDepartBatches import FillUnpredictedDepartBatches
 from src.data_access import data_from_sql_file
 
 @timer()
@@ -20,8 +18,8 @@ def main():
     params = {}
 
     if config.TEST:
-        start_date = '2022-04-04 15:30:00'
-        end_date = '2022-04-04 16:00:00'
+        start_date = '2022-04-19 03:30:00'
+        end_date = '2022-04-19 05:00:00'
         domain = config.DEFAULT_DOMAIN
         type = config.DEFAULT_TYPE
         courier_ids = []  # config.COURIER_IDS
@@ -35,10 +33,6 @@ def main():
 
     domains = domain.split(',')
 
-
-    # data_from_sql_file('./sql/depart_batches.sql')
-
-    print('Batched orders are copied for depart from warehouse event. ')
 
     print("Start date:", start_date)
     print("End date:", end_date)
@@ -62,14 +56,15 @@ def main():
 
     print("Duplicates are removed")
 
-
     if 'PERIOD' in type:
         start = params.period_start_date
         end = params.period_end_date
-        FillUnpredictedDepartBatches(start, end).fill()
+        params = {
+            'start': start,
+            'end': end
+        }
+        data_from_sql_file('./sql/depart_batches.sql', **params)
         print('Batched orders between {} and {} are copied for depart from warehouse event. '.format(start, end))
-
-
 
 
 def run(start_date: str, end_date: str, domains: list, courier_ids: list):

@@ -5,7 +5,7 @@ create table #delivery_job_oids as
            COUNT(p.predicted_depart_date) as pred_count
         from project_auto_events.depart_date_prediction p
         inner join etl_market_order.marketorders mo ON p.order_id = mo._id_oid
-        where p.predictedat between '2022-04-01' and '2022-04-19' AND mo.status in (900, 1000) AND mo.domaintype in (1, 3)
+        where p.predictedat between '{start}' and '{end}' AND mo.status in (900, 1000) AND mo.domaintype in (1, 3)
         group by mo.delivery_job_oid
         having batch_count > 1 AND pred_count >= 1 AND pred_count < batch_count;
 
@@ -19,7 +19,7 @@ select mo.delivery_job_oid,
 from etl_market_order.marketorders mo
 left join #delivery_job_oids j ON mo.delivery_job_oid = j.delivery_job_oid
 left join project_auto_events.depart_date_prediction p ON mo._id_oid = p.order_id
-where mo.deliver_date between '2022-03-31 23:00:00' and '2022-04-19' and mo.status in (900, 1000)
+where mo.deliver_date between '{start}' and '{end}' and mo.status in (900, 1000)
 and mo.domaintype in (1, 3) and j.delivery_job_oid is not null and p.order_id is not null
 group by mo.delivery_job_oid
 having min_predicted_depart_date is not null;

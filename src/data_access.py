@@ -73,10 +73,10 @@ def grant_access(connection, table_name, schema_name='public', group='data_rw'):
 
 
 
-def data_from_sql_file(sql_file):
+def data_from_sql_file(sql_file, **params):
     with open(sql_file) as file:
         query_temp = file.read()
-    query = query_temp.format()
+    query = query_temp.format(**params)
 
     return REDSHIFT_ETL.execute(query)
 
