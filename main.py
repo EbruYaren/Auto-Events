@@ -61,9 +61,9 @@ def main():
 
     if datetime.now().hour == 11:
         # datetime.now().replace(minute=0, second=0, microsecond=0) - timedelta(hours=3)
-        end = '2022-04-19'
+        end = '2022-04-25'
         # end - timedelta(hours=26)
-        start = '2022-04-25'
+        start = '2022-04-19'
         params = {
             'start': start,
             'end': end
