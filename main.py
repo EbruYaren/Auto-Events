@@ -59,9 +59,9 @@ def main():
 
     print('NOW HOUR: ', datetime.now().hour)
 
-    if datetime.now().hour == 11:
+    if datetime.now().hour == 3:
         # datetime.now().replace(minute=0, second=0, microsecond=0) - timedelta(hours=3)
-        end = '2022-04-25'
+        end = '2022-04-26'
         # end - timedelta(hours=26)
         start = '2022-04-19'
         params = {
