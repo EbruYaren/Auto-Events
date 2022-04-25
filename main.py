@@ -10,6 +10,7 @@ from src.utils import timer, get_run_params, get_date_pairs
 from src.data_access import grant_access, create_table, remove_duplicates, drop_table
 from src import ATHENA
 from src.data_access import data_from_sql_file
+from datetime import datetime, timedelta
 
 @timer()
 def main():
@@ -56,16 +57,19 @@ def main():
 
     print("Duplicates are removed")
 
-    if 'PERIOD' in type:
-        start = params.period_start_date
-        end = params.period_end_date
+    print('NOW HOUR: ', datetime.now().hour)
+
+    if datetime.now().hour == 11:
+        # datetime.now().replace(minute=0, second=0, microsecond=0) - timedelta(hours=3)
+        end = '2022-04-19'
+        # end - timedelta(hours=26)
+        start = '2022-04-25'
         params = {
             'start': start,
             'end': end
         }
         data_from_sql_file('./sql/depart_batches.sql', **params)
         print('Batched orders between {} and {} are copied for depart from warehouse event. '.format(start, end))
-
 
 def run(start_date: str, end_date: str, domains: list, courier_ids: list):
     print("Start date:", start_date)
