@@ -68,8 +68,8 @@ class Order:
                                     l.reached_to_client_lon, l.reached_to_client_createdatl, 6 as domaintype,
                                     'Europe/Istanbul' as time_zone,
                                     cd.domaintypes,
-                                    wl.lat,
-                                    wl.lon
+                                   wl.lat as warehouse_location__coordinates_lat,
+                                   wl.lon as warehouse_location__coordinates_lon
                                     from etl_artisan_order.foodorders f
                                     LEFT JOIN (select  data_foodorder as artisan_order_id,
                                                        MAX(case when data_method = 'courierReachedToRestaurant' then location__coordinates_lat end) as reached_to_restaurant_lat,
