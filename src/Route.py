@@ -95,34 +95,9 @@ class Route:
         return "(" + ','.join(ids) + ")"
 
 
-
-    def __get_routes_from_temp_table(self):
-        query = \
-            """
-            create table #routes_route
-            (
-                route_id   varchar(26) not null,
-                index      integer,
-                lon        double precision,
-                lat        double precision,
-                time       timestamp,
-                acc        double precision
-            );
-            copy #routes_route from 's3://getir-data-routes-etl/routes-etl/routes-route-20220116'
-                iam_role 'arn:aws:iam::164762854291:role/data-cron-temp-files-role' CSV GZIP ignoreheader 1;
-            SELECT *
-            FROM #routes_route
-            WHERE route_id in ('{routes}')
-            """.format(routes="','".join(self.__route_id_list))
-
-        return pd.read_sql(query, self.__engine_etl)
-
     def fetch_routes_df(self):
 
-        if self.__is_test:
-            data = self.__get_routes_from_temp_table()
-        else:
-            data = self.__get_trajectories()
+        data = self.__get_trajectories()
 
         return data
 

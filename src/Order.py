@@ -34,7 +34,10 @@ class Order:
                                f.deliveryaddress_location__coordinates_lon, f.deliveryaddress_location__coordinates_lat, f.restaurantloc_lon, f.restaurantloc_lat,
                                l.reached_to_restaurant_lat, l.reached_to_restaurant_lon, l.reached_to_restaurant_createdatl, l.reached_to_client_lat,
                                l.reached_to_client_lon, l.reached_to_client_createdatl, 2 as domaintype,
-                               'Europe/Istanbul' as time_zone
+                               'Europe/Istanbul' as time_zone,
+                               cd.domaintypes,
+                               wl.lat as warehouse_location__coordinates_lat,
+                               wl.lon as warehouse_location__coordinates_lon
                         from etl_food_order.foodorders f
                         LEFT JOIN (select  data_foodorder as artisan_order_id,
                                            MAX(case when data_method = 'courierReachedToRestaurant' then location__coordinates_lat end) as reached_to_restaurant_lat,
@@ -47,6 +50,9 @@ class Order:
                                     where data_foodorder is not null and data_foodorder <> 'null'
                                     group by data_foodorder) l ON f._id_oid = l.artisan_order_id
                         LEFT JOIN project_auto_events.reach_to_restaurant_date_prediction rdp ON rdp.order_id = f._id_oid
+                        LEFT JOIN etl_getir.couriers__domaintypes cd ON f.courier_oid = cd._p_id_oid
+                        LEFT JOIN etl_getir.couriers c ON f.courier_oid = c._id_oid
+                        LEFT JOIN market_analytics.warehouse_locations wl ON c.warehouse_oid = wl.warehouse
                                 WHERE f.status in (900, 1000)
                                 AND f.deliverytype = 1 
                                 AND (rdp.order_id is null OR rdp.predicted_reach_date is null)
@@ -58,9 +64,12 @@ class Order:
                                     f.checkoutdatel, f.deliverdate as deliver_date, f.reachdate as reach_date, f.handoverdate,
                                     f.deliveryaddress_location__coordinates_lon, f.deliveryaddress_location__coordinates_lat,
                                     f.restaurantloc_lon, f.restaurantloc_lat,
-                                    l.reached_to_restaurant_lat, l.reached_to_restaurant_lon, l.reached_to_restaurant_createdatl, l.reached_to_client_lat, 
+                                    l.reached_to_restaurant_lat, l.reached_to_restaurant_lon, l.reached_to_restaurant_createdatl, l.reached_to_client_lat,
                                     l.reached_to_client_lon, l.reached_to_client_createdatl, 6 as domaintype,
-                               'Europe/Istanbul' as time_zone
+                                    'Europe/Istanbul' as time_zone,
+                                    cd.domaintypes,
+                                    wl.lat,
+                                    wl.lon
                                     from etl_artisan_order.foodorders f
                                     LEFT JOIN (select  data_foodorder as artisan_order_id,
                                                        MAX(case when data_method = 'courierReachedToRestaurant' then location__coordinates_lat end) as reached_to_restaurant_lat,
@@ -73,10 +82,13 @@ class Order:
                                                 where data_foodorder is not null and data_foodorder <> 'null'
                                                 group by data_foodorder) l ON f._id_oid = l.artisan_order_id
                                     LEFT JOIN project_auto_events.reach_to_shop_date_prediction rdp ON rdp.order_id = f._id_oid
-                                            WHERE f.status in (900, 1000)
-                                            AND (rdp.order_id is null OR rdp.predicted_reach_date is null)
-                                            AND f.deliverytype = 1 
-                                            AND f.deliverdate BETWEEN  '{start_date}' AND  '{end_date}'
+                                    LEFT JOIN etl_getir.couriers__domaintypes cd ON f.courier_oid = cd._p_id_oid
+                                    LEFT JOIN etl_getir.couriers c ON f.courier_oid = c._id_oid
+                                    LEFT JOIN market_analytics.warehouse_locations wl ON c.warehouse_oid = wl.warehouse
+                                    WHERE f.status in (900, 1000)
+                                    AND (rdp.order_id is null OR rdp.predicted_reach_date is null)
+                                    AND f.deliverytype = 1
+                                    AND f.deliverdate BETWEEN  '{start_date}' AND  '{end_date}'
                                              {courier_filter}
                 """
 

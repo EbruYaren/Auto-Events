@@ -72,11 +72,12 @@ class DepartLogisticReachSinglePredictor(SinglePredictor):
 class DepartBulkPredictor:
 
     def __init__(self, processed_data: pd.DataFrame, predictor: SinglePredictor, max_distance_to_warehouse:float,
-                 orders_df: pd.DataFrame):
+                 orders_df: pd.DataFrame, domain_type: int):
         self.__processed_data = processed_data
         self.__predictor = predictor
         self.__max_distance_to_warehouse = max_distance_to_warehouse
         self.__orders_df = orders_df
+        self.__domain_type = domain_type
 
     def predict_in_bulk(self):
         df = self.__processed_data.copy()
@@ -90,9 +91,13 @@ class DepartBulkPredictor:
         df['rn'] = df.groupby('_id_oid')['index'].rank(method='min')  # check if true
         #df['prev_time'] = df.groupby('_id_oid')['time'].shift(1)
         df['prev_distance_to_warehouse'] = df.groupby('_id_oid')['distance_to_warehouse'].shift(1)
-        true_preds = df[(df['predictions']) &
-                        (df['time'] > df['onway_date']) &
-                        (df['prev_distance_to_warehouse'] < self.__max_distance_to_warehouse)]
+        if self.__domain_type in (2, 6):
+            true_preds = df[(df['predictions']) &
+                            (df['prev_distance_to_warehouse'] < self.__max_distance_to_warehouse)]
+        else:
+            true_preds = df[(df['predictions']) &
+                            (df['time'] > df['onway_date']) &
+                            (df['prev_distance_to_warehouse'] < self.__max_distance_to_warehouse)]
         true_preds['true_rn'] = true_preds.groupby('_id_oid')['index'].rank(method='min')
         true_preds = true_preds[true_preds['true_rn'] == 1]
         pred_rows = true_preds[['_id_oid', 'rn']]
@@ -108,12 +113,13 @@ class DepartBulkPredictor:
         else:
             labeled_times.rename(columns={'time_zone': 'time_l'}, inplace=True)
 
+        labeled_times = labeled_times[['_id_oid', 'time', 'lat', 'lon', 'time_l']].drop_duplicates()
 
-        labeled_times = labeled_times[['_id_oid', 'time', 'lat', 'lon', 'time_l']].drop_duplicates().copy()
-
-        # Getting unpredicted batched orders data
-        rows = self.get_unpredicted_batched_orders(labeled_times)
-        return rows.reset_index(drop=True)
+        # Getting unpredicted batched orders data for market orders
+        if self.__domain_type not in (2, 6):
+            return self.get_unpredicted_batched_orders(labeled_times).reset_index(drop=True)
+        else:
+            return labeled_times.reset_index(drop=True)
 
     def get_unpredicted_batched_orders(self, predictions):
         # Getting processed data before prediction process and group by _id_oid to eliminate multiple routes
