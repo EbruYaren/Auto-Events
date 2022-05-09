@@ -91,13 +91,10 @@ class DepartBulkPredictor:
         df['rn'] = df.groupby('_id_oid')['index'].rank(method='min')  # check if true
         #df['prev_time'] = df.groupby('_id_oid')['time'].shift(1)
         df['prev_distance_to_warehouse'] = df.groupby('_id_oid')['distance_to_warehouse'].shift(1)
-        if self.__domain_type in (2, 6):
-            true_preds = df[(df['predictions']) &
-                            (df['prev_distance_to_warehouse'] < self.__max_distance_to_warehouse)]
-        else:
-            true_preds = df[(df['predictions']) &
-                            (df['time'] > df['onway_date']) &
-                            (df['prev_distance_to_warehouse'] < self.__max_distance_to_warehouse)]
+        true_preds = df[(df['predictions']) &
+                        (df['prev_distance_to_warehouse'] < self.__max_distance_to_warehouse)]
+        if self.__domain_type not in (2, 6):
+            true_preds = true_preds[true_preds['time'] > true_preds['onway_date']]
         true_preds['true_rn'] = true_preds.groupby('_id_oid')['index'].rank(method='min')
         true_preds = true_preds[true_preds['true_rn'] == 1]
         pred_rows = true_preds[['_id_oid', 'rn']]
