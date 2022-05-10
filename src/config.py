@@ -7,6 +7,8 @@ DEPART_FROM_CLIENT_CREATE_TABLE = False
 REACH_TO_SHOP_TABLE = False
 REACH_TO_RESTAURANT_TABLE = False
 DELIVERY_CREATE_TABLE = False
+ARTISAN_DEPART_CREATE_TABLE = True
+FOOD_DEPART_CREATE_TABLE = True
 
 REDSHIFT_ETL_URI = os.environ.get('REDSHIFT_ETL_URI')
 MONGO_ROUTES_URI = os.environ.get('MONGO_ROUTES_URI')
@@ -38,6 +40,18 @@ REACH_TO_RESTAURANT_TABLE_COLUMNS = ['order_id',
 
 DEPART_TABLE_NAME = "depart_date_prediction"
 DEPART_TABLE_COLUMNS = ['order_id',
+                     'predicted_depart_date',
+                     'predicted_depart_dateL',
+                     'latitude', 'longitude']
+
+FOOD_DEPART_TABLE_NAME = "food_depart_date_prediction"
+FOOD_DEPART_TABLE_COLUMNS = ['order_id',
+                     'predicted_depart_date',
+                     'predicted_depart_dateL',
+                     'latitude', 'longitude']
+
+ARTISAN_DEPART_TABLE_NAME = "artisan_depart_date_prediction"
+ARTISAN_DEPART_TABLE_COLUMNS = ['order_id',
                      'predicted_depart_date',
                      'predicted_depart_dateL',
                      'latitude', 'longitude']
@@ -117,6 +131,32 @@ CREATE TABLE if not exists {schema}.reach_to_restaurant_date_prediction
 
 DEPART_CREATE_TABLE_QUERY = """
 CREATE TABLE project_auto_events.depart_date_prediction
+(
+    prediction_id         BIGINT IDENTITY (0,1) NOT NULL,
+    order_id              varchar(256) sortkey,
+    predicted_depart_date  timestamp,
+    predicted_depart_dateL timestamp,
+    latitude              double precision,
+    longitude             double precision,
+    predictedat  timestamp default getdate()
+);
+"""
+
+FOOD_DEPART_CREATE_TABLE_QUERY = """
+CREATE TABLE project_auto_events.food_depart_date_prediction
+(
+    prediction_id         BIGINT IDENTITY (0,1) NOT NULL,
+    order_id              varchar(256) sortkey,
+    predicted_depart_date  timestamp,
+    predicted_depart_dateL timestamp,
+    latitude              double precision,
+    longitude             double precision,
+    predictedat  timestamp default getdate()
+);
+"""
+
+ARTISAN_DEPART_CREATE_TABLE_QUERY = """
+CREATE TABLE project_auto_events.artisan_depart_date_prediction
 (
     prediction_id         BIGINT IDENTITY (0,1) NOT NULL,
     order_id              varchar(256) sortkey,

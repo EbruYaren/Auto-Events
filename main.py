@@ -16,17 +16,13 @@ from datetime import datetime, timedelta
 def main():
     print("Cron started")
 
-    params = {}
-
     if config.TEST:
-        start_date = '2022-04-19 03:30:00'
-        end_date = '2022-04-19 05:00:00'
+        start_date = '2022-04-19 13:30:00'
+        end_date = '2022-04-19 13:32:00'
         domain = config.DEFAULT_DOMAIN
-        type = config.DEFAULT_TYPE
         courier_ids = []  # config.COURIER_IDS
     else:
         params = get_run_params()
-        type = params.type
         start_date = params.start_date
         end_date = params.end_date
         domain = params.domain
@@ -35,8 +31,8 @@ def main():
     domains = domain.split(',')
 
 
-    print("Start date:", start_date)
-    print("End date:", end_date)
+    print("Start date before hourly loop:", start_date)
+    print("End date before hourly loop:", end_date)
 
 
     for pair in get_date_pairs(start_date, end_date):
@@ -54,6 +50,8 @@ def main():
         remove_duplicates(connection, config.REACH_TO_RESTAURANT_TABLE_NAME, 'prediction_id', ['order_id'],
                           config.SCHEMA_NAME)
         remove_duplicates(connection, config.DELIVERY_TABLE_NAME, 'prediction_id', ['order_id'], config.SCHEMA_NAME)
+        remove_duplicates(connection, config.FOOD_DEPART_TABLE_NAME, 'prediction_id', ['order_id'], config.SCHEMA_NAME)
+        remove_duplicates(connection, config.ARTISAN_DEPART_TABLE_NAME, 'prediction_id', ['order_id'], config.SCHEMA_NAME)
 
     print("Duplicates are removed")
 
@@ -70,6 +68,7 @@ def main():
         }
         data_from_sql_file('./sql/depart_batches.sql', **params)
         print('Batched orders between {} and {} are copied for depart from warehouse event. '.format(start, end))
+
 
 def run(start_date: str, end_date: str, domains: list, courier_ids: list):
     print("Start date:", start_date)
@@ -112,6 +111,18 @@ def run(start_date: str, end_date: str, domains: list, courier_ids: list):
             grant_access(connection, config.DELIVERY_TABLE_NAME, config.SCHEMA_NAME, config.DB_USER_GROUP)
             print("Delivery Table created")
 
+    if config.FOOD_DEPART_CREATE_TABLE:
+        with WRITE_ENGINE.begin() as connection:
+            create_table(connection, config.FOOD_DEPART_CREATE_TABLE_QUERY)
+            grant_access(connection, config.FOOD_DEPART_TABLE_NAME, config.SCHEMA_NAME, config.DB_USER_GROUP)
+            print("Depart Table (Food) is created")
+
+    if config.ARTISAN_DEPART_CREATE_TABLE:
+        with WRITE_ENGINE.begin() as connection:
+            create_table(connection, config.ARTISAN_DEPART_CREATE_TABLE_QUERY)
+            grant_access(connection, config.ARTISAN_DEPART_TABLE_NAME, config.SCHEMA_NAME, config.DB_USER_GROUP)
+            print("Depart Table (Artisan) is created")
+
     orders = Order(start_date, end_date, REDSHIFT_ETL, courier_ids, chunk_size=config.chunk_size, domains=domains,
                    domain_type=1)
     food_orders = Order(start_date, end_date, REDSHIFT_ETL, courier_ids, chunk_size=config.chunk_size, domain_type=2)
@@ -150,6 +161,15 @@ def get_routes_and_process(chunk_df, domains, domain_type, start_date, end_date)
         reach_predictions = []
         depart_from_client_predictions = []
 
+        if 'depart' in domains:
+            if domain_type in (2, 6):
+                chunk_df = chunk_df[chunk_df.domaintypes.isin([1, 3])]
+
+            processed_depart_orders = depart_main(chunk_df, routes_df, domain_type)
+            total_processed_routes_for_depart += processed_depart_orders
+            print("Total Processed Routes for Depart: ", total_processed_routes_for_depart)
+
+
         if 'reach' in domains and domain_type not in (2, 6):
             processed_reach_orders = reach_main(chunk_df, routes_df).get('routes')
             total_processed_routes_for_reach += processed_reach_orders
@@ -158,10 +178,6 @@ def get_routes_and_process(chunk_df, domains, domain_type, start_date, end_date)
             reach_predictions = reach_predictions.merge(orders, left_on="_id_oid", right_on="_id_oid", how="inner")
             print("Total Processed Routes For Reach : ", total_processed_routes_for_reach)
 
-        if 'depart' in domains and domain_type not in (2, 6):
-            processed_depart_orders = depart_main(chunk_df, routes_df)
-            total_processed_routes_for_depart += processed_depart_orders
-            print("Total Processed Routes for Depart: ", total_processed_routes_for_depart)
 
         if 'depart_from_client' in domains and domain_type not in (2, 6):
             reach_predictions = reach_predictions[reach_predictions.time.notna()][['_id_oid', 'time', 'time_l']].\
@@ -173,7 +189,7 @@ def get_routes_and_process(chunk_df, domains, domain_type, start_date, end_date)
             depart_from_client_predictions = depart_from_client_dict.get('preds')
 
         if 'depart' in domains and domain_type not in (2, 6):
-            processed_depart_orders = depart_main(chunk_df, routes_df)
+            processed_depart_orders = depart_main(chunk_df, routes_df, domain_type)
             total_processed_routes_for_depart += processed_depart_orders
             print("Total Processed Routes for Depart: ", total_processed_routes_for_depart)
 
@@ -249,19 +265,29 @@ def reach_to_merchant_main(chunk_df: pd.DataFrame, routes_df: pd.DataFrame, doma
     return chunk_df['delivery_route_oid'].nunique()
 
 
-def depart_main(chunk_df: pd.DataFrame, routes_df: pd.DataFrame):
+def depart_main(chunk_df: pd.DataFrame, routes_df: pd.DataFrame, domain_type: int):
     order_ids = pd.DataFrame(chunk_df['_id_oid'], columns=['_id_oid'])
     processed_data = DepartDataProcessor(
         orders=chunk_df, routes=routes_df,
         minimum_location_limit=config.MINIMUM_LOCATION_LIMIT).process()
 
     single_predictor = DepartLogisticReachSinglePredictor(config.DEPART_INTERCEPT, config.DEPART_COEFFICIENTS)
-    bulk_predictor = DepartBulkPredictor(processed_data, single_predictor, config.MAX_DISTANCE_FOR_DEPART_PREDICTION, chunk_df)
+    bulk_predictor = DepartBulkPredictor(processed_data, single_predictor, config.MAX_DISTANCE_FOR_DEPART_PREDICTION,
+                                         chunk_df, domain_type)
     predictions = bulk_predictor.predict_in_bulk()
     predictions = order_ids.merge(predictions, on='_id_oid', how='left')
 
-    writer = Writer(predictions, WRITE_ENGINE, config.DEPART_TABLE_NAME, config.SCHEMA_NAME,
-                    config.DEPART_TABLE_COLUMNS)
+    if domain_type == 2:
+        TABLE_NAME = config.FOOD_DEPART_TABLE_NAME
+        TABLE_COLUMNS = config.FOOD_DEPART_TABLE_COLUMNS
+    elif domain_type == 6:
+        TABLE_NAME = config.ARTISAN_DEPART_TABLE_NAME
+        TABLE_COLUMNS = config.ARTISAN_DEPART_TABLE_COLUMNS
+    else:
+        TABLE_NAME = config.DEPART_TABLE_NAME
+        TABLE_COLUMNS = config.DEPART_TABLE_COLUMNS
+
+    writer = Writer(predictions, WRITE_ENGINE, TABLE_NAME, config.SCHEMA_NAME, TABLE_COLUMNS)
     writer.write()
 
     return chunk_df['delivery_route_oid'].nunique()
