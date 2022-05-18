@@ -133,47 +133,50 @@ class DepartDataProcessor(DataProcessor):
         print('Depart data shape: ', data.shape)
         print('Depart data order count: ', data._id_oid.nunique())
 
-        if data._id_oid.nunique() == 1:
-            data['tbe'] = (data['time'] - data['time'].shift(1)).dt.total_seconds()
+        if len(data) > 0:
+            if data._id_oid.nunique() == 1:
+                    data['tbe'] = (data['time'] - data['time'].shift(1)).dt.total_seconds()
+            else:
+                data['tbe'] = data.groupby('_id_oid').apply(
+                    lambda route: (route['time'] - route['time'].shift(1)).dt.total_seconds()).droplevel(0)
+
+            data['distance_to_warehouse'] = data.apply(
+                lambda row: DataProcessor.haversine(
+                    row['lon'], row['lat'],
+                    row['warehouse_location__coordinates_lon'],
+                    row['warehouse_location__coordinates_lat']) * 1000,
+                axis='columns')
+
+
+            if data._id_oid.nunique() == 1:
+                data['dist_to_warehouse_diff'] = data['distance_to_warehouse'] - data['distance_to_warehouse'].shift(1)
+            else:
+                data['dist_to_warehouse_diff'] = data.groupby('_id_oid').apply(
+                    lambda route: route['distance_to_warehouse'] - route['distance_to_warehouse'].shift(1)).droplevel(0)
+
+            data['speed_to_warehouse'] = data['dist_to_warehouse_diff'] / data['tbe']
+
+            data['prev_lat'] = data.groupby('_id_oid')['lat'].shift(1)
+            data['prev_lon'] = data.groupby('_id_oid')['lon'].shift(1)
+
+            data['distance_to_prev_event'] = data.apply(
+                lambda row: DataProcessor.haversine(
+                    row['lon'], row['lat'],
+                    row['prev_lon'],
+                    row['prev_lat']) * 1000,
+                axis='columns')
+
+            data['speed_to_prev_event'] = data['distance_to_prev_event'] / data['tbe']
+
+            data['smooth_speed_to_warehouse'] = data.groupby('_id_oid')['speed_to_warehouse'] \
+                .rolling(3, center=True).mean().droplevel(0)
+            data['smooth_speed_to_prev_event'] = data.groupby('_id_oid')['speed_to_prev_event'] \
+                .rolling(3, center=True).mean().droplevel(0)
+            data['dbw_warehouse_log'] = data['distance_to_warehouse'].apply(log)
+
+            return data.dropna()
         else:
-            data['tbe'] = data.groupby('_id_oid').apply(
-                lambda route: (route['time'] - route['time'].shift(1)).dt.total_seconds()).droplevel(0)
-
-        data['distance_to_warehouse'] = data.apply(
-            lambda row: DataProcessor.haversine(
-                row['lon'], row['lat'],
-                row['warehouse_location__coordinates_lon'],
-                row['warehouse_location__coordinates_lat']) * 1000,
-            axis='columns')
-
-
-        if data._id_oid.nunique() == 1:
-            data['dist_to_warehouse_diff'] = data['distance_to_warehouse'] - data['distance_to_warehouse'].shift(1)
-        else:
-            data['dist_to_warehouse_diff'] = data.groupby('_id_oid').apply(
-                lambda route: route['distance_to_warehouse'] - route['distance_to_warehouse'].shift(1)).droplevel(0)
-
-        data['speed_to_warehouse'] = data['dist_to_warehouse_diff'] / data['tbe']
-
-        data['prev_lat'] = data.groupby('_id_oid')['lat'].shift(1)
-        data['prev_lon'] = data.groupby('_id_oid')['lon'].shift(1)
-
-        data['distance_to_prev_event'] = data.apply(
-            lambda row: DataProcessor.haversine(
-                row['lon'], row['lat'],
-                row['prev_lon'],
-                row['prev_lat']) * 1000,
-            axis='columns')
-
-        data['speed_to_prev_event'] = data['distance_to_prev_event'] / data['tbe']
-
-        data['smooth_speed_to_warehouse'] = data.groupby('_id_oid')['speed_to_warehouse'] \
-            .rolling(3, center=True).mean().droplevel(0)
-        data['smooth_speed_to_prev_event'] = data.groupby('_id_oid')['speed_to_prev_event'] \
-            .rolling(3, center=True).mean().droplevel(0)
-        data['dbw_warehouse_log'] = data['distance_to_warehouse'].apply(log)
-
-        return data.dropna()
+            return pd.DataFrame([])
 
     def process(self):
         m_df = self.merged_df.drop_duplicates().copy()

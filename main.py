@@ -166,8 +166,8 @@ def get_routes_and_process(chunk_df, domains, domain_type, start_date, end_date)
                 chunk_df = chunk_df[chunk_df.domaintypes.isin([1, 3])]
 
             processed_depart_orders = depart_main(chunk_df, routes_df, domain_type)
-            total_processed_routes_for_depart += processed_depart_orders
-            print("Total Processed Routes for Depart: ", total_processed_routes_for_depart)
+            total_processed_routes_for_depart += (processed_depart_orders or 0)
+            print("Total Processed Routes for domain type {} Depart: {}".format(domain_type, total_processed_routes_for_depart))
 
 
         if 'reach' in domains and domain_type not in (2, 6):
@@ -270,22 +270,23 @@ def depart_main(chunk_df: pd.DataFrame, routes_df: pd.DataFrame, domain_type: in
     bulk_predictor = DepartBulkPredictor(processed_data, single_predictor, config.MAX_DISTANCE_FOR_DEPART_PREDICTION,
                                          chunk_df, domain_type)
     predictions = bulk_predictor.predict_in_bulk()
-    predictions = order_ids.merge(predictions, on='_id_oid', how='left')
+    if predictions is not None:
+        predictions = order_ids.merge(predictions, on='_id_oid', how='left')
 
-    if domain_type == 2:
-        TABLE_NAME = config.FOOD_DEPART_TABLE_NAME
-        TABLE_COLUMNS = config.FOOD_DEPART_TABLE_COLUMNS
-    elif domain_type == 6:
-        TABLE_NAME = config.ARTISAN_DEPART_TABLE_NAME
-        TABLE_COLUMNS = config.ARTISAN_DEPART_TABLE_COLUMNS
-    else:
-        TABLE_NAME = config.DEPART_TABLE_NAME
-        TABLE_COLUMNS = config.DEPART_TABLE_COLUMNS
+        if domain_type == 2:
+            TABLE_NAME = config.FOOD_DEPART_TABLE_NAME
+            TABLE_COLUMNS = config.FOOD_DEPART_TABLE_COLUMNS
+        elif domain_type == 6:
+            TABLE_NAME = config.ARTISAN_DEPART_TABLE_NAME
+            TABLE_COLUMNS = config.ARTISAN_DEPART_TABLE_COLUMNS
+        else:
+            TABLE_NAME = config.DEPART_TABLE_NAME
+            TABLE_COLUMNS = config.DEPART_TABLE_COLUMNS
 
-    writer = Writer(predictions, WRITE_ENGINE, TABLE_NAME, config.SCHEMA_NAME, TABLE_COLUMNS)
-    writer.write()
+        writer = Writer(predictions, WRITE_ENGINE, TABLE_NAME, config.SCHEMA_NAME, TABLE_COLUMNS)
+        writer.write()
 
-    return chunk_df['delivery_route_oid'].nunique()
+        return chunk_df['delivery_route_oid'].nunique()
 
 
 def depart_from_client_main(chunk_df: pd.DataFrame, routes_df: pd.DataFrame, reach_predictions_df: pd.DataFrame):
