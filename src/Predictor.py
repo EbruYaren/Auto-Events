@@ -80,43 +80,44 @@ class DepartBulkPredictor:
         self.__domain_type = domain_type
 
     def predict_in_bulk(self):
-        df = self.__processed_data.copy()
+        if self.__processed_data.empty is False:
+            df = self.__processed_data.copy()
 
-        df['predictions'] = df.apply(
-            lambda row: self.__predictor.predict(
-                row['smooth_speed_to_warehouse'],
-                row['smooth_speed_to_prev_event'],
-                row['dbw_warehouse_log']
-            ), axis='columns')
-        df['rn'] = df.groupby('_id_oid')['index'].rank(method='min')  # check if true
-        #df['prev_time'] = df.groupby('_id_oid')['time'].shift(1)
-        df['prev_distance_to_warehouse'] = df.groupby('_id_oid')['distance_to_warehouse'].shift(1)
-        true_preds = df[(df['predictions']) &
-                        (df['prev_distance_to_warehouse'] < self.__max_distance_to_warehouse)]
-        if self.__domain_type not in (2, 6):
-            true_preds = true_preds[true_preds['time'] > true_preds['onway_date']]
-        true_preds['true_rn'] = true_preds.groupby('_id_oid')['index'].rank(method='min')
-        true_preds = true_preds[true_preds['true_rn'] == 1]
-        pred_rows = true_preds[['_id_oid', 'rn']]
-        pred_rows['last_false'] = pred_rows['rn'].apply(lambda r: r - 1 if r > 1 else r)
-        pred_rows.drop('rn', axis='columns', inplace=True)
-        df = df.merge(pred_rows, on='_id_oid')
-        labeled_times = df[df['rn'] == df['last_false']]
+            df['predictions'] = df.apply(
+                lambda row: self.__predictor.predict(
+                    row['smooth_speed_to_warehouse'],
+                    row['smooth_speed_to_prev_event'],
+                    row['dbw_warehouse_log']
+                ), axis='columns')
+            df['rn'] = df.groupby('_id_oid')['index'].rank(method='min')  # check if true
+            #df['prev_time'] = df.groupby('_id_oid')['time'].shift(1)
+            df['prev_distance_to_warehouse'] = df.groupby('_id_oid')['distance_to_warehouse'].shift(1)
+            true_preds = df[(df['predictions']) &
+                            (df['prev_distance_to_warehouse'] < self.__max_distance_to_warehouse)]
+            if self.__domain_type not in (2, 6):
+                true_preds = true_preds[true_preds['time'] > true_preds['onway_date']]
+            true_preds['true_rn'] = true_preds.groupby('_id_oid')['index'].rank(method='min')
+            true_preds = true_preds[true_preds['true_rn'] == 1]
+            pred_rows = true_preds[['_id_oid', 'rn']]
+            pred_rows['last_false'] = pred_rows['rn'].apply(lambda r: r - 1 if r > 1 else r)
+            pred_rows.drop('rn', axis='columns', inplace=True)
+            df = df.merge(pred_rows, on='_id_oid')
+            labeled_times = df[df['rn'] == df['last_false']]
 
-        if labeled_times.size > 0:
-            labeled_times['time_l'] = labeled_times.apply(
-                lambda row: row.time.replace(tzinfo=pytz.utc).astimezone(row.time_zone).strftime('%Y-%m-%dT%H:%M:%S.%f')
-                , axis='columns')
-        else:
-            labeled_times.rename(columns={'time_zone': 'time_l'}, inplace=True)
+            if labeled_times.size > 0:
+                labeled_times['time_l'] = labeled_times.apply(
+                    lambda row: row.time.replace(tzinfo=pytz.utc).astimezone(row.time_zone).strftime('%Y-%m-%dT%H:%M:%S.%f')
+                    , axis='columns')
+            else:
+                labeled_times.rename(columns={'time_zone': 'time_l'}, inplace=True)
 
-        labeled_times = labeled_times[['_id_oid', 'time', 'lat', 'lon', 'time_l']].drop_duplicates()
+            labeled_times = labeled_times[['_id_oid', 'time', 'lat', 'lon', 'time_l']].drop_duplicates()
 
-        # Getting unpredicted batched orders data for market orders
-        if self.__domain_type not in (2, 6):
-            return self.get_unpredicted_batched_orders(labeled_times).reset_index(drop=True)
-        else:
-            return labeled_times.reset_index(drop=True)
+            # Getting unpredicted batched orders data for market orders
+            if self.__domain_type not in (2, 6):
+                return self.get_unpredicted_batched_orders(labeled_times).reset_index(drop=True)
+            else:
+                return labeled_times.reset_index(drop=True)
 
     def get_unpredicted_batched_orders(self, predictions):
         # Getting processed data before prediction process and group by _id_oid to eliminate multiple routes
