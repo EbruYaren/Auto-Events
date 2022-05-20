@@ -70,70 +70,51 @@ def main():
         print('Batched orders between {} and {} are copied for depart from warehouse event. '.format(start, end))
 
 
+def create_table(CREATE_TABLE_QUERY: str, CREATE_TABLE_NAME: str, name: str):
+    with WRITE_ENGINE.begin() as connection:
+        create_table(connection, CREATE_TABLE_QUERY)
+        grant_access(connection, CREATE_TABLE_NAME, config.SCHEMA_NAME, config.DB_USER_GROUP)
+        print("{} Table created", name)
+
+
 def run(start_date: str, end_date: str, domains: list, courier_ids: list):
     print("Start date:", start_date)
     print("End date:", end_date)
     print("Domains:", domains)
 
     if config.REACH_CREATE_TABLE:
-        with WRITE_ENGINE.begin() as connection:
-            create_table(connection, config.CREATE_TABLE_QUERY)
-            grant_access(connection, config.REACH_TABLE_NAME, config.SCHEMA_NAME, config.DB_USER_GROUP)
-            print("Reach Table created")
+        create_table(config.CREATE_TABLE_QUERY, config.REACH_TABLE_NAME, 'Reach')
 
     if config.REACH_TO_SHOP_TABLE:
-        with WRITE_ENGINE.begin() as connection:
-            create_table(connection, config.CREATE_REACH_TO_SHOP_TABLE_QUERY)
-            grant_access(connection, config.REACH_TO_SHOP_TABLE_NAME, config.SCHEMA_NAME, config.DB_USER_GROUP)
-            print("Reach To Shop table created")
+        create_table(config.CREATE_REACH_TO_SHOP_TABLE_QUERY, config.REACH_TO_SHOP_TABLE_NAME, 'Reach To Merchant')
 
     if config.REACH_TO_RESTAURANT_TABLE:
-        with WRITE_ENGINE.begin() as connection:
-            create_table(connection, config.CREATE_REACH_TO_RESTAURANT_TABLE_QUERY)
-            grant_access(connection, config.REACH_TO_RESTAURANT_TABLE_NAME, config.SCHEMA_NAME, config.DB_USER_GROUP)
-            print("Reach To Restaurant table created")
+        create_table(config.CREATE_REACH_TO_RESTAURANT_TABLE_QUERY, config.REACH_TO_RESTAURANT_TABLE_NAME,
+                     'Reach To Restaurant')
 
     if config.DEPART_CREATE_TABLE:
-        with WRITE_ENGINE.begin() as connection:
-            create_table(connection, config.DEPART_CREATE_TABLE_QUERY)
-            grant_access(connection, config.DEPART_TABLE_NAME, config.SCHEMA_NAME, config.DB_USER_GROUP)
-            print("Depart Table created")
+        create_table(config.DEPART_CREATE_TABLE_QUERY, config.DEPART_TABLE_NAME, 'Depart')
 
     if config.DEPART_FROM_CLIENT_CREATE_TABLE:
-        with WRITE_ENGINE.begin() as connection:
-            create_table(connection, config.DEPART_FROM_CLIENT_CREATE_TABLE_QUERY)
-            grant_access(connection, config.DEPART_FROM_CLIENT_TABLE_NAME, config.SCHEMA_NAME, config.DB_USER_GROUP)
-            print("Depart From Client Table created")
+        create_table(config.DEPART_FROM_CLIENT_CREATE_TABLE_QUERY, config.DEPART_FROM_CLIENT_TABLE_NAME,
+                     'Depart From Client')
 
     if config.DELIVERY_CREATE_TABLE:
-        with WRITE_ENGINE.begin() as connection:
-            create_table(connection, config.DELIVERY_CREATE_TABLE_QUERY)
-            grant_access(connection, config.DELIVERY_TABLE_NAME, config.SCHEMA_NAME, config.DB_USER_GROUP)
-            print("Delivery Table created")
+        create_table(config.DELIVERY_CREATE_TABLE_QUERY, config.DELIVERY_TABLE_NAME, 'Deliver')
 
     if config.FOOD_DEPART_CREATE_TABLE:
-        with WRITE_ENGINE.begin() as connection:
-            create_table(connection, config.FOOD_DEPART_CREATE_TABLE_QUERY)
-            grant_access(connection, config.FOOD_DEPART_TABLE_NAME, config.SCHEMA_NAME, config.DB_USER_GROUP)
-            print("Depart Table (Food) is created")
+        create_table(config.FOOD_DEPART_CREATE_TABLE_QUERY, config.FOOD_DEPART_TABLE_NAME, 'Depart for Food')
 
     if config.ARTISAN_DEPART_CREATE_TABLE:
-        with WRITE_ENGINE.begin() as connection:
-            create_table(connection, config.ARTISAN_DEPART_CREATE_TABLE_QUERY)
-            grant_access(connection, config.ARTISAN_DEPART_TABLE_NAME, config.SCHEMA_NAME, config.DB_USER_GROUP)
-            print("Depart Table (Artisan) is created")
+        create_table(config.ARTISAN_DEPART_CREATE_TABLE_QUERY, config.ARTISAN_DEPART_TABLE_NAME, 'Depart for Artisan')
 
     if config.FOOD_DEPART_FROM_MERCHANT_CREATE_TABLE:
-        with WRITE_ENGINE.begin() as connection:
-            create_table(connection, config.FOOD_DEPART_FROM_MERCHANT_CREATE_TABLE_QUERY)
-            grant_access(connection, config.FOOD_DEPART_FROM_MERCHANT_TABLE_NAME, config.SCHEMA_NAME, config.DB_USER_GROUP)
-            print("Depart Table (Food) is created")
+        create_table(config.FOOD_DEPART_FROM_MERCHANT_CREATE_TABLE_QUERY, config.FOOD_DEPART_FROM_MERCHANT_TABLE_NAME,
+                     'Depart From Merchant for Food')
 
     if config.ARTISAN_DEPART_FROM_MERCHANT_CREATE_TABLE:
-        with WRITE_ENGINE.begin() as connection:
-            create_table(connection, config.ARTISAN_DEPART_FROM_MERCHANT_CREATE_TABLE_QUERY)
-            grant_access(connection, config.ARTISAN_DEPART_FROM_MERCHANT_TABLE_NAME, config.SCHEMA_NAME, config.DB_USER_GROUP)
-            print("Depart Table (Food) is created")
+        create_table(config.ARTISAN_DEPART_FROM_MERCHANT_CREATE_TABLE_QUERY,
+                     config.ARTISAN_DEPART_FROM_MERCHANT_TABLE_NAME, 'Depart From Merchant for Artisan')
 
 
     orders = Order(start_date, end_date, REDSHIFT_ETL, courier_ids, chunk_size=config.chunk_size, domains=domains,
@@ -176,13 +157,15 @@ def get_routes_and_process(chunk_df, domains, domain_type, start_date, end_date)
 
         if 'depart' in domains:
             if domain_type in (2, 6):
-               chunk_df = chunk_df[chunk_df.domaintypes.isin([1, 3])]
-               for domain in ['depart_from_merchant', 'depart_from_courier_warehouse']:
-                   processed_depart_orders = depart_main(chunk_df, routes_df, domain_type, domain)
+                chunk_df = chunk_df[chunk_df.domaintypes.isin([1, 3])]
+                for domain in ['depart_from_merchant', 'depart_from_courier_warehouse']:
+                    processed_depart_orders = depart_main(chunk_df, routes_df, domain_type, domain)
+                    total_processed_routes_for_depart += (processed_depart_orders or 0)
             else:
                 processed_depart_orders = depart_main(chunk_df, routes_df, domain_type, '')
-            total_processed_routes_for_depart += (processed_depart_orders or 0)
-            print("Total Processed Routes for domain type {} Depart: {}".format(domain_type, total_processed_routes_for_depart))
+                total_processed_routes_for_depart += (processed_depart_orders or 0)
+            print("Total Processed Routes for domain type {} Depart: {}".format(domain_type,
+                                                                                total_processed_routes_for_depart))
 
 
         if 'reach' in domains and domain_type not in (2, 6):
