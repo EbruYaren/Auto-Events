@@ -123,12 +123,13 @@ class ReachDataProcessor(DataProcessor):
 
 class DepartDataProcessor(DataProcessor):
 
-    def __init__(self, orders: pd.DataFrame, routes: pd.DataFrame, minimum_location_limit: int):
+    def __init__(self, orders: pd.DataFrame, routes: pd.DataFrame, minimum_location_limit: int, domain: str):
         self.merged_df = routes.merge(orders, left_on="route_id", right_on="_id_oid", how="inner")
         self.minimum_location_limit = minimum_location_limit
+        self.domain = domain
 
     @staticmethod
-    def get_movement_info(data: pd.DataFrame):
+    def get_movement_info(data: pd.DataFrame, domain: str):
         data.sort_values(['_id_oid', 'index'], inplace=True)
         print('Depart data shape: ', data.shape)
         print('Depart data order count: ', data._id_oid.nunique())
@@ -140,11 +141,18 @@ class DepartDataProcessor(DataProcessor):
                 data['tbe'] = data.groupby('_id_oid').apply(
                     lambda route: (route['time'] - route['time'].shift(1)).dt.total_seconds()).droplevel(0)
 
+            if domain == 'depart_from_merchant':
+                source_lat = 'restaurantloc_lat'
+                source_lon = 'restaurantloc_lon'
+            else:
+                source_lat = 'warehouse_location__coordinates_lat'
+                source_lon = 'warehouse_location__coordinates_lon'
+
             data['distance_to_warehouse'] = data.apply(
                 lambda row: DataProcessor.haversine(
                     row['lon'], row['lat'],
-                    row['warehouse_location__coordinates_lon'],
-                    row['warehouse_location__coordinates_lat']) * 1000,
+                    row[source_lon],
+                    row[source_lat]) * 1000,
                 axis='columns')
 
 
@@ -184,7 +192,7 @@ class DepartDataProcessor(DataProcessor):
         filtered_ids = counts[counts >= self.minimum_location_limit].index
         m_df = m_df[m_df['route_id'].isin(filtered_ids)]
 
-        return DepartDataProcessor.get_movement_info(m_df)
+        return DepartDataProcessor.get_movement_info(m_df, self.domain)
 
 
 class DepartFromClientDataProcessor(DataProcessor):

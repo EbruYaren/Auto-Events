@@ -123,6 +123,19 @@ def run(start_date: str, end_date: str, domains: list, courier_ids: list):
             grant_access(connection, config.ARTISAN_DEPART_TABLE_NAME, config.SCHEMA_NAME, config.DB_USER_GROUP)
             print("Depart Table (Artisan) is created")
 
+    if config.FOOD_DEPART_FROM_MERCHANT_CREATE_TABLE:
+        with WRITE_ENGINE.begin() as connection:
+            create_table(connection, config.FOOD_DEPART_FROM_MERCHANT_CREATE_TABLE_QUERY)
+            grant_access(connection, config.FOOD_DEPART_FROM_MERCHANT_TABLE_NAME, config.SCHEMA_NAME, config.DB_USER_GROUP)
+            print("Depart Table (Food) is created")
+
+    if config.ARTISAN_DEPART_FROM_MERCHANT_CREATE_TABLE:
+        with WRITE_ENGINE.begin() as connection:
+            create_table(connection, config.ARTISAN_DEPART_FROM_MERCHANT_CREATE_TABLE_QUERY)
+            grant_access(connection, config.ARTISAN_DEPART_FROM_MERCHANT_TABLE_NAME, config.SCHEMA_NAME, config.DB_USER_GROUP)
+            print("Depart Table (Food) is created")
+
+
     orders = Order(start_date, end_date, REDSHIFT_ETL, courier_ids, chunk_size=config.chunk_size, domains=domains,
                    domain_type=1)
     food_orders = Order(start_date, end_date, REDSHIFT_ETL, courier_ids, chunk_size=config.chunk_size, domain_type=2)
@@ -163,9 +176,11 @@ def get_routes_and_process(chunk_df, domains, domain_type, start_date, end_date)
 
         if 'depart' in domains:
             if domain_type in (2, 6):
-                chunk_df = chunk_df[chunk_df.domaintypes.isin([1, 3])]
-
-            processed_depart_orders = depart_main(chunk_df, routes_df, domain_type)
+               chunk_df = chunk_df[chunk_df.domaintypes.isin([1, 3])]
+               for domain in ['depart_from_merchant', 'depart_from_courier_warehouse']:
+                   processed_depart_orders = depart_main(chunk_df, routes_df, domain_type, domain)
+            else:
+                processed_depart_orders = depart_main(chunk_df, routes_df, domain_type, '')
             total_processed_routes_for_depart += (processed_depart_orders or 0)
             print("Total Processed Routes for domain type {} Depart: {}".format(domain_type, total_processed_routes_for_depart))
 
@@ -260,25 +275,38 @@ def reach_to_merchant_main(chunk_df: pd.DataFrame, routes_df: pd.DataFrame, doma
     return chunk_df['delivery_route_oid'].nunique()
 
 
-def depart_main(chunk_df: pd.DataFrame, routes_df: pd.DataFrame, domain_type: int):
+def depart_main(chunk_df: pd.DataFrame, routes_df: pd.DataFrame, domain_type: int, domain: str):
     order_ids = pd.DataFrame(chunk_df['_id_oid'], columns=['_id_oid'])
     processed_data = DepartDataProcessor(
         orders=chunk_df, routes=routes_df,
-        minimum_location_limit=config.MINIMUM_LOCATION_LIMIT).process()
+        minimum_location_limit=config.MINIMUM_LOCATION_LIMIT,
+        domain=domain).process()
 
     single_predictor = DepartLogisticReachSinglePredictor(config.DEPART_INTERCEPT, config.DEPART_COEFFICIENTS)
     bulk_predictor = DepartBulkPredictor(processed_data, single_predictor, config.MAX_DISTANCE_FOR_DEPART_PREDICTION,
                                          chunk_df, domain_type)
     predictions = bulk_predictor.predict_in_bulk()
+
     if predictions is not None:
         predictions = order_ids.merge(predictions, on='_id_oid', how='left')
 
+        # 'depart_from_merchant', 'depart_from_courier_warehouse'
         if domain_type == 2:
-            TABLE_NAME = config.FOOD_DEPART_TABLE_NAME
-            TABLE_COLUMNS = config.FOOD_DEPART_TABLE_COLUMNS
+            if domain == 'depart_from_merchant':
+                TABLE_NAME = config.FOOD_DEPART_FROM_MERCHANT_TABLE_NAME
+                TABLE_COLUMNS = config.FOOD_DEPART_FROM_MERCHANT_TABLE_COLUMNS
+            else:
+                TABLE_NAME = config.FOOD_DEPART_TABLE_NAME
+                TABLE_COLUMNS = config.FOOD_DEPART_TABLE_COLUMNS
+
         elif domain_type == 6:
-            TABLE_NAME = config.ARTISAN_DEPART_TABLE_NAME
-            TABLE_COLUMNS = config.ARTISAN_DEPART_TABLE_COLUMNS
+            if domain == 'depart_from_merchant':
+                TABLE_NAME = config.ARTISAN_DEPART_FROM_MERCHANT_TABLE_NAME
+                TABLE_COLUMNS = config.ARTISAN_DEPART_FROM_MERCHANT_TABLE_COLUMNS
+            else:
+                TABLE_NAME = config.ARTISAN_DEPART_TABLE_NAME
+                TABLE_COLUMNS = config.ARTISAN_DEPART_TABLE_COLUMNS
+
         else:
             TABLE_NAME = config.DEPART_TABLE_NAME
             TABLE_COLUMNS = config.DEPART_TABLE_COLUMNS

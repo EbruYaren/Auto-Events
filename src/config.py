@@ -9,6 +9,8 @@ REACH_TO_RESTAURANT_TABLE = False
 DELIVERY_CREATE_TABLE = False
 ARTISAN_DEPART_CREATE_TABLE = False
 FOOD_DEPART_CREATE_TABLE = False
+ARTISAN_DEPART_FROM_MERCHANT_CREATE_TABLE = True
+FOOD_DEPART_FROM_MERCHANT_CREATE_TABLE = True
 
 REDSHIFT_ETL_URI = os.environ.get('REDSHIFT_ETL_URI')
 MONGO_ROUTES_URI = os.environ.get('MONGO_ROUTES_URI')
@@ -52,6 +54,18 @@ FOOD_DEPART_TABLE_COLUMNS = ['order_id',
 
 ARTISAN_DEPART_TABLE_NAME = "artisan_depart_date_prediction"
 ARTISAN_DEPART_TABLE_COLUMNS = ['order_id',
+                     'predicted_depart_date',
+                     'predicted_depart_dateL',
+                     'latitude', 'longitude']
+
+FOOD_DEPART_FROM_MERCHANT_TABLE_NAME = "food_depart_from_merchant_date_prediction"
+FOOD_DEPART_FROM_MERCHANT_TABLE_COLUMNS = ['order_id',
+                     'predicted_depart_date',
+                     'predicted_depart_dateL',
+                     'latitude', 'longitude']
+
+ARTISAN_DEPART_FROM_MERCHANT_TABLE_NAME = "artisan_depart_from_merchant_date_prediction"
+ARTISAN_DEPART_FROM_MERCHANT_TABLE_COLUMNS = ['order_id',
                      'predicted_depart_date',
                      'predicted_depart_dateL',
                      'latitude', 'longitude']
@@ -168,6 +182,31 @@ CREATE TABLE project_auto_events.artisan_depart_date_prediction
 );
 """
 
+FOOD_DEPART_FROM_MERCHANT_CREATE_TABLE_QUERY = """
+CREATE TABLE project_auto_events.food_depart_from_merchant_date_prediction
+(
+    prediction_id         BIGINT IDENTITY (0,1) NOT NULL,
+    order_id              varchar(256) sortkey,
+    predicted_depart_date  timestamp,
+    predicted_depart_dateL timestamp,
+    latitude              double precision,
+    longitude             double precision,
+    predictedat  timestamp default getdate()
+);
+"""
+
+ARTISAN_DEPART_FROM_MERCHANT_CREATE_TABLE_QUERY = """
+CREATE TABLE project_auto_events.artisan_depart_from_merchant_date_prediction
+(
+    prediction_id         BIGINT IDENTITY (0,1) NOT NULL,
+    order_id              varchar(256) sortkey,
+    predicted_depart_date  timestamp,
+    predicted_depart_dateL timestamp,
+    latitude              double precision,
+    longitude             double precision,
+    predictedat  timestamp default getdate()
+);
+"""
 
 DEPART_FROM_CLIENT_CREATE_TABLE_QUERY = """
 CREATE TABLE {schema}.depart_from_client_date_prediction
@@ -198,9 +237,10 @@ CREATE TABLE if not exists {schema}.delivery_date_prediction
 RUN_INTERVAL = timedelta(hours=1, minutes=30)
 
 DOMAIN_LIST = ['depart', 'reach', 'depart,reach', 'depart_from_client', 'depart,reach,depart_from_client',
-               'reach_to_merchant', 'deliver', 'depart,reach,depart_from_client,reach_to_merchant',
-               'depart,reach,depart_from_client,reach_to_merchant,deliver']
-DEFAULT_DOMAIN = 'depart,reach,depart_from_client,reach_to_merchant,deliver'
+               'reach_to_merchant', 'depart_from_merchant', 'deliver', 'depart_from_courier_warehouse',
+               'depart,reach,depart_from_client,reach_to_merchant',
+               'depart,reach,depart_from_client,reach_to_merchant,deliver,depart_from_merchant,depart_from_courier_warehouse']
+DEFAULT_DOMAIN = 'depart,reach,depart_from_client,reach_to_merchant,deliver,depart_from_merchant,depart_from_courier_warehouse'
 
 
 DEFAULT_TYPE = 'HOURLY'
