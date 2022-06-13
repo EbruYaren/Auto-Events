@@ -203,7 +203,7 @@ class DepartFromClientBulkPredictor:
         df['prev_distance_to_client'] = df.groupby('_id_oid')['distance_to_client'].shift(1)
         true_preds = df[(df['predictions']) &
                         (df['time'] >= df['reach_date']) &
-                        (df['time'] >= df['predicted_reach_date']) &
+                        # (df['time'] >= df['predicted_reach_date']) &
                         (df['prev_distance_to_client'] < self.__max_distance_to_client)]
         true_preds['true_rn'] = true_preds.groupby('_id_oid')['time'].rank(method='min')
         true_preds = true_preds[true_preds['true_rn'] == 1]
@@ -212,7 +212,7 @@ class DepartFromClientBulkPredictor:
         pred_rows.drop('rn', axis='columns', inplace=True)
         df = df.merge(pred_rows, on='_id_oid')
 
-        labeled_times = df[(df['rn'] == df['last_false']) & (df['time'] >= df['predicted_reach_date']) & (df['time'] >= df['reach_date'])][
+        labeled_times = df[(df['rn'] == df['last_false']) & (df['time'] >= df['reach_date'])][
             ['_id_oid', 'time', 'lat', 'lon', 'time_zone']].drop_duplicates()
 
         if labeled_times.size > 0:
