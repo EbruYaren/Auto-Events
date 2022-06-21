@@ -70,7 +70,7 @@ def main():
         print('Batched orders between {} and {} are copied for depart from warehouse event. '.format(start, end))
 
 
-def create_table(CREATE_TABLE_QUERY: str, CREATE_TABLE_NAME: str, name: str):
+def create_auto_table(CREATE_TABLE_QUERY: str, CREATE_TABLE_NAME: str, name: str):
     with WRITE_ENGINE.begin() as connection:
         create_table(connection, CREATE_TABLE_QUERY)
         grant_access(connection, CREATE_TABLE_NAME, config.SCHEMA_NAME, config.DB_USER_GROUP)
@@ -83,39 +83,36 @@ def run(start_date: str, end_date: str, domains: list, courier_ids: list):
     print("Domains:", domains)
 
     if config.REACH_CREATE_TABLE:
-        create_table(config.CREATE_TABLE_QUERY, config.REACH_TABLE_NAME, 'Reach')
+        create_auto_table(config.CREATE_TABLE_QUERY, config.REACH_TABLE_NAME, 'Reach')
 
     if config.REACH_TO_SHOP_TABLE:
-        create_table(config.CREATE_REACH_TO_SHOP_TABLE_QUERY, config.REACH_TO_SHOP_TABLE_NAME, 'Reach To Merchant')
+        create_auto_table(config.CREATE_REACH_TO_SHOP_TABLE_QUERY, config.REACH_TO_SHOP_TABLE_NAME, 'Reach To Merchant')
 
     if config.REACH_TO_RESTAURANT_TABLE:
-        create_table(config.CREATE_REACH_TO_RESTAURANT_TABLE_QUERY, config.REACH_TO_RESTAURANT_TABLE_NAME,
+        create_auto_table(config.CREATE_REACH_TO_RESTAURANT_TABLE_QUERY, config.REACH_TO_RESTAURANT_TABLE_NAME,
                      'Reach To Restaurant')
 
     if config.DEPART_CREATE_TABLE:
-        create_table(config.DEPART_CREATE_TABLE_QUERY, config.DEPART_TABLE_NAME, 'Depart')
+        create_auto_table(config.DEPART_CREATE_TABLE_QUERY, config.DEPART_TABLE_NAME, 'Depart')
 
     if config.DEPART_FROM_CLIENT_CREATE_TABLE:
-        create_table(config.DEPART_FROM_CLIENT_CREATE_TABLE_QUERY, config.DEPART_FROM_CLIENT_TABLE_NAME,
+        create_auto_table(config.DEPART_FROM_CLIENT_CREATE_TABLE_QUERY, config.DEPART_FROM_CLIENT_TABLE_NAME,
                      'Depart From Client')
 
     if config.DELIVERY_CREATE_TABLE:
-        create_table(config.DELIVERY_CREATE_TABLE_QUERY, config.DELIVERY_TABLE_NAME, 'Deliver')
+        create_auto_table(config.DELIVERY_CREATE_TABLE_QUERY, config.DELIVERY_TABLE_NAME, 'Deliver')
 
     if config.FOOD_DEPART_CREATE_TABLE:
-        create_table(config.FOOD_DEPART_CREATE_TABLE_QUERY, config.FOOD_DEPART_TABLE_NAME, 'Depart for Food')
+        create_auto_table(config.FOOD_DEPART_CREATE_TABLE_QUERY, config.FOOD_DEPART_TABLE_NAME, 'Depart for Food')
 
     if config.ARTISAN_DEPART_CREATE_TABLE:
-        create_table(config.ARTISAN_DEPART_CREATE_TABLE_QUERY, config.ARTISAN_DEPART_TABLE_NAME, 'Depart for Artisan')
+        create_auto_table(config.ARTISAN_DEPART_CREATE_TABLE_QUERY, config.ARTISAN_DEPART_TABLE_NAME, 'Depart for Artisan')
 
     if config.FOOD_DEPART_FROM_MERCHANT_CREATE_TABLE:
-        create_table(config.FOOD_DEPART_FROM_MERCHANT_CREATE_TABLE_QUERY, config.FOOD_DEPART_FROM_MERCHANT_TABLE_NAME,
-                     'Depart From Merchant for Food')
+        create_auto_table(config.FOOD_DEPART_FROM_MERCHANT_CREATE_TABLE_QUERY, config.FOOD_DEPART_FROM_MERCHANT_TABLE_NAME, 'Depart From Merchant for Food')
 
     if config.ARTISAN_DEPART_FROM_MERCHANT_CREATE_TABLE:
-        create_table(config.ARTISAN_DEPART_FROM_MERCHANT_CREATE_TABLE_QUERY,
-                     config.ARTISAN_DEPART_FROM_MERCHANT_TABLE_NAME, 'Depart From Merchant for Artisan')
-
+        create_auto_table(config.ARTISAN_DEPART_FROM_MERCHANT_CREATE_TABLE_QUERY, config.ARTISAN_DEPART_FROM_MERCHANT_TABLE_NAME, 'Depart From Merchant for Artisan')
 
     orders = Order(start_date, end_date, REDSHIFT_ETL, courier_ids, chunk_size=config.chunk_size, domains=domains,
                    domain_type=1)

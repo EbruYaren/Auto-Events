@@ -7,7 +7,7 @@ class Order:
            checkoutdatel,
            deliver_date ,
            reach_date,
-           onway_date,
+           max(onway_date) over (partition by delivery_job_oid) as onway_date,
            -- client_location__coordinates_lon, client_location__coordinates_lat,
            deliver_location__coordinates_lon, deliver_location__coordinates_lat,
            reach_location__coordinates_lon, reach_location__coordinates_lat,
