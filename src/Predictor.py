@@ -67,6 +67,16 @@ class DepartLogisticReachSinglePredictor(SinglePredictor):
         return True if output >= .5  else False
 
 
+def get_predicted_depart_rows(true_preds: pd.DataFrame, df: pd.DataFrame, domain_type: int):
+    pred_rows = true_preds[['_id_oid', 'rn']]
+    pred_rows['last_false'] = pred_rows['rn'].apply(lambda r: r - 1 if r > 1 else r)
+    pred_rows.drop('rn', axis='columns', inplace=True)
+    df = df.merge(pred_rows, on='_id_oid')
+    labeled_times = df[(df['rn'] == df['last_false'])]
+    if domain_type not in (2, 6):
+        labeled_times = labeled_times[(labeled_times['time'] > labeled_times['onway_date'])]
+
+    return labeled_times.sort_values(['_id_oid', 'time']).groupby(['_id_oid']).first().reset_index()
 
 
 class DepartBulkPredictor:
@@ -96,13 +106,10 @@ class DepartBulkPredictor:
                             (df['prev_distance_to_warehouse'] < self.__max_distance_to_warehouse)]
             if self.__domain_type not in (2, 6):
                 true_preds = true_preds[true_preds['time'] > true_preds['onway_date']]
+
             true_preds['true_rn'] = true_preds.groupby('_id_oid')['index'].rank(method='min')
-            true_preds = true_preds[true_preds['true_rn'] == 1]
-            pred_rows = true_preds[['_id_oid', 'rn']]
-            pred_rows['last_false'] = pred_rows['rn'].apply(lambda r: r - 1 if r > 1 else r)
-            pred_rows.drop('rn', axis='columns', inplace=True)
-            df = df.merge(pred_rows, on='_id_oid')
-            labeled_times = df[df['rn'] == df['last_false']]
+
+            labeled_times = get_predicted_depart_rows(true_preds, df, domain_type=self.__domain_type)
 
             if labeled_times.size > 0:
                 labeled_times['time_l'] = labeled_times.apply(
@@ -135,7 +142,7 @@ class DepartBulkPredictor:
                     'time': first_row['time'].values[0],
                     'time_l': first_row['time_l'].values[0],
                     'lat': first_row['lat'].values[0],
-                    'lon': first_row['lon'].values[0],
+                    'lon': first_row['lon'].values[0]
                 })
                 # If first batch was predicted:
                 if any(first_row.time.notna()):
@@ -150,7 +157,7 @@ class DepartBulkPredictor:
                                 'time': first_row['time'].values[0],
                                 'time_l': first_row['time_l'].values[0],
                                 'lat': first_row['lat'].values[0],
-                                'lon': first_row['lon'].values[0],
+                                'lon': first_row['lon'].values[0]
                             })
 
         rows = pd.DataFrame(rows)
