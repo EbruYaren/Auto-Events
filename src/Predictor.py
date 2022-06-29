@@ -110,7 +110,7 @@ class DepartBulkPredictor:
             true_preds['true_rn'] = true_preds.groupby('_id_oid')['index'].rank(method='min')
 
             labeled_times = get_predicted_depart_rows(true_preds, df, domain_type=self.__domain_type)
-
+            print('new version of depart from warehouse running.. ')
             if labeled_times.size > 0:
                 labeled_times['time_l'] = labeled_times.apply(
                     lambda row: row.time.replace(tzinfo=pytz.utc).astimezone(row.time_zone).strftime('%Y-%m-%dT%H:%M:%S.%f')
@@ -219,9 +219,9 @@ class DepartFromClientBulkPredictor:
         pred_rows.drop('rn', axis='columns', inplace=True)
         df = df.merge(pred_rows, on='_id_oid')
 
-        labeled_times = df[(df['rn'] == df['last_false']) & (df['time'] >= df['reach_date'])][
-            ['_id_oid', 'time', 'lat', 'lon', 'time_zone']].drop_duplicates()
-
+        labeled_times = df[((df['time'] >= df['reach_date']) & ((df['rn'] == df['last_false']) | (df['rn'] == (df['last_false'] + 1))))][['_id_oid', 'time', 'lat', 'lon', 'time_zone', 'rn']].drop_duplicates()
+        labeled_times['row_number'] = labeled_times.sort_values(['_id_oid', 'rn']).groupby(['_id_oid']).cumcount() + 1
+        labeled_times = labeled_times[labeled_times.row_number == 1][['_id_oid', 'time', 'lat', 'lon', 'time_zone']]
         if labeled_times.size > 0:
             labeled_times['time_l'] = labeled_times.apply(
                lambda row: row.time.replace(tzinfo=pytz.utc).astimezone(row.time_zone).strftime('%Y-%m-%dT%H:%M:%S.%f')
