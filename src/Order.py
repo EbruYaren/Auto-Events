@@ -92,6 +92,28 @@ class Order:
                                              {courier_filter}
                 """
 
+    QUERY_TEMPLATE_WATER = """SELECT delivery_route_oid, _id_oid, courier_courier_oid,
+           checkoutdatel,
+           deliver_date ,
+           reach_date,
+           onway_date,
+           -- client_location__coordinates_lon, client_location__coordinates_lat,
+           deliver_location__coordinates_lon, deliver_location__coordinates_lat,
+           reach_location__coordinates_lon, reach_location__coordinates_lat,
+           delivery_address_location__coordinates_lon, delivery_address_location__coordinates_lat,
+           warehouse_location__coordinates_lon, warehouse_location__coordinates_lat,
+           handover_date,
+           z.time_zone,
+        FROM etl_market_order.marketorders o
+        LEFT JOIN project_auto_events.{prediction_table} rdp ON rdp.order_id = o._id_oid
+        LEFT JOIN market_analytics.country_time_zones AS z ON o.country_oid = z.country_id
+        WHERE status in (900, 1000)
+        {null_filter}
+        AND deliver_date BETWEEN  '{start_date}' AND  '{end_date}' 
+        AND domaintype in (4)
+        {courier_filter}
+        ORDER BY courier_courier_oid, deliver_date"""
+
     def __init__(self, start_date: str, end_date: str, etl_engine: sqlalchemy.engine.base.Engine, courier_ids=[],
                  chunk_size=1000, domains=None, domain_type=int):
 
@@ -144,6 +166,13 @@ class Order:
                                                       courier_filter=courier_filter,
                                                       #                                          prediction_table=prediction_table,
                                                       null_filter=null_filter)
+
+        if self.__domain_type == 4:
+            return self.QUERY_TEMPLATE_WATER.format(start_date=self.__start_date,
+                                                    end_date=self.__end_date,
+                                                    courier_filter=courier_filter,
+                                                    prediction_table=prediction_table,
+                                                    null_filter=null_filter)
 
     def fetch_orders_df(self):
         query = self._query_formatter()

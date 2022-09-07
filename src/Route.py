@@ -21,7 +21,7 @@ class Route:
 
     def __get_trajectories(self, order_filter=None, select_filter=None):
 
-        if self.__domain_type == 1:
+        if self.__domain_type in (1, 4):
             if len(self.__order_ids) == 0:
                 order_filter = ''
             else:
