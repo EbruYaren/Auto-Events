@@ -103,7 +103,7 @@ class Order:
            delivery_address_location__coordinates_lon, delivery_address_location__coordinates_lat,
            warehouse_location__coordinates_lon, warehouse_location__coordinates_lat,
            handover_date,
-           z.time_zone,
+           z.time_zone
         FROM etl_market_order.marketorders o
         LEFT JOIN project_auto_events.{prediction_table} rdp ON rdp.order_id = o._id_oid
         LEFT JOIN market_analytics.country_time_zones AS z ON o.country_oid = z.country_id

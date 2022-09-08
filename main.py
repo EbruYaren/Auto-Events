@@ -38,30 +38,30 @@ def main():
         start, end = pair
         run(start, end, domains, courier_ids)
 
-        with WRITE_ENGINE.begin() as connection:
-            remove_duplicates(connection, config.REACH_TABLE_NAME, 'prediction_id', ['order_id'], config.SCHEMA_NAME)
-            remove_duplicates(connection, config.DEPART_TABLE_NAME, 'prediction_id', ['order_id'], config.SCHEMA_NAME)
-            remove_duplicates(connection, config.DEPART_FROM_CLIENT_TABLE_NAME, 'prediction_id', ['order_id'],
-                              config.SCHEMA_NAME)
-            remove_duplicates(connection, config.REACH_TO_SHOP_TABLE_NAME, 'prediction_id', ['order_id'],
-                              config.SCHEMA_NAME)
-            remove_duplicates(connection, config.REACH_TO_RESTAURANT_TABLE_NAME, 'prediction_id', ['order_id'],
-                              config.SCHEMA_NAME)
-            remove_duplicates(connection, config.DELIVERY_TABLE_NAME, 'prediction_id', ['order_id'], config.SCHEMA_NAME)
-            remove_duplicates(connection, config.FOOD_DEPART_TABLE_NAME, 'prediction_id', ['order_id'],
-                              config.SCHEMA_NAME)
-            remove_duplicates(connection, config.ARTISAN_DEPART_TABLE_NAME, 'prediction_id', ['order_id'],
-                              config.SCHEMA_NAME)
-            """
-            remove_duplicates(connection, config.WATER_REACH_TABLE_NAME, 'prediction_id', ['order_id'],
-                              config.SCHEMA_NAME)
-            remove_duplicates(connection, config.WATER_DEPART_TABLE_NAME, 'prediction_id', ['order_id'],
-                              config.SCHEMA_NAME)
-            remove_duplicates(connection, config.WATER_DEPART_FROM_CLIENT_TABLE_NAME, 'prediction_id', ['order_id'],
-                              config.SCHEMA_NAME)
-            remove_duplicates(connection, config.WATER_DELIVERY_TABLE_NAME, 'prediction_id', ['order_id'],
-                              config.SCHEMA_NAME)
-            """
+    with WRITE_ENGINE.begin() as connection:
+        remove_duplicates(connection, config.REACH_TABLE_NAME, 'prediction_id', ['order_id'], config.SCHEMA_NAME)
+        remove_duplicates(connection, config.DEPART_TABLE_NAME, 'prediction_id', ['order_id'], config.SCHEMA_NAME)
+        remove_duplicates(connection, config.DEPART_FROM_CLIENT_TABLE_NAME, 'prediction_id', ['order_id'],
+                          config.SCHEMA_NAME)
+        remove_duplicates(connection, config.REACH_TO_SHOP_TABLE_NAME, 'prediction_id', ['order_id'],
+                          config.SCHEMA_NAME)
+        remove_duplicates(connection, config.REACH_TO_RESTAURANT_TABLE_NAME, 'prediction_id', ['order_id'],
+                          config.SCHEMA_NAME)
+        remove_duplicates(connection, config.DELIVERY_TABLE_NAME, 'prediction_id', ['order_id'], config.SCHEMA_NAME)
+        remove_duplicates(connection, config.FOOD_DEPART_TABLE_NAME, 'prediction_id', ['order_id'],
+                          config.SCHEMA_NAME)
+        remove_duplicates(connection, config.ARTISAN_DEPART_TABLE_NAME, 'prediction_id', ['order_id'],
+                          config.SCHEMA_NAME)
+        """
+        remove_duplicates(connection, config.WATER_REACH_TABLE_NAME, 'prediction_id', ['order_id'],
+                          config.SCHEMA_NAME)
+        remove_duplicates(connection, config.WATER_DEPART_TABLE_NAME, 'prediction_id', ['order_id'],
+                          config.SCHEMA_NAME)
+        remove_duplicates(connection, config.WATER_DEPART_FROM_CLIENT_TABLE_NAME, 'prediction_id', ['order_id'],
+                          config.SCHEMA_NAME)
+        remove_duplicates(connection, config.WATER_DELIVERY_TABLE_NAME, 'prediction_id', ['order_id'],
+                          config.SCHEMA_NAME)
+        """
 
     print("Duplicates are removed")
 
