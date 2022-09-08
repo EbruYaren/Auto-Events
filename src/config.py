@@ -12,10 +12,10 @@ FOOD_DEPART_CREATE_TABLE = False
 ARTISAN_DEPART_FROM_MERCHANT_CREATE_TABLE = False
 FOOD_DEPART_FROM_MERCHANT_CREATE_TABLE = False
 
-WATER_REACH_CREATE_TABLE = True
-WATER_DEPART_CREATE_TABLE = True
-WATER_DELIVERY_CREATE_TABLE = True
-WATER_DEPART_FROM_CLIENT_CREATE_TABLE = True
+WATER_REACH_CREATE_TABLE = False
+WATER_DEPART_CREATE_TABLE = False
+WATER_DELIVERY_CREATE_TABLE = False
+WATER_DEPART_FROM_CLIENT_CREATE_TABLE = False
 
 REDSHIFT_ETL_URI = os.environ.get('REDSHIFT_ETL_URI')
 MONGO_ROUTES_URI = os.environ.get('MONGO_ROUTES_URI')
@@ -43,7 +43,6 @@ REACH_TO_RESTAURANT_TABLE_COLUMNS = ['order_id',
                                      'predicted_reach_date',
                                      'predicted_reach_dateL',
                                      'latitude', 'longitude']
-
 
 DEPART_TABLE_NAME = "depart_date_prediction"
 DEPART_TABLE_COLUMNS = ['order_id',

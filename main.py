@@ -52,7 +52,7 @@ def main():
                           config.SCHEMA_NAME)
         remove_duplicates(connection, config.ARTISAN_DEPART_TABLE_NAME, 'prediction_id', ['order_id'],
                           config.SCHEMA_NAME)
-        """
+
         remove_duplicates(connection, config.WATER_REACH_TABLE_NAME, 'prediction_id', ['order_id'],
                           config.SCHEMA_NAME)
         remove_duplicates(connection, config.WATER_DEPART_TABLE_NAME, 'prediction_id', ['order_id'],
@@ -61,7 +61,7 @@ def main():
                           config.SCHEMA_NAME)
         remove_duplicates(connection, config.WATER_DELIVERY_TABLE_NAME, 'prediction_id', ['order_id'],
                           config.SCHEMA_NAME)
-        """
+
 
     print("Duplicates are removed")
 
