@@ -121,7 +121,7 @@ class DepartBulkPredictor:
             labeled_times = labeled_times[['_id_oid', 'time', 'lat', 'lon', 'time_l']].drop_duplicates()
 
             # Getting unpredicted batched orders data for market orders
-            if self.__domain_type not in (2, 6):
+            if self.__domain_type not in (2, 6, 4):
                 return self.get_unpredicted_batched_orders(labeled_times).reset_index(drop=True)
             else:
                 return labeled_times.reset_index(drop=True)

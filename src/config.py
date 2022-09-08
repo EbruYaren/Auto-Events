@@ -12,6 +12,11 @@ FOOD_DEPART_CREATE_TABLE = False
 ARTISAN_DEPART_FROM_MERCHANT_CREATE_TABLE = False
 FOOD_DEPART_FROM_MERCHANT_CREATE_TABLE = False
 
+WATER_REACH_CREATE_TABLE = True
+WATER_DEPART_CREATE_TABLE = True
+WATER_DELIVERY_CREATE_TABLE = True
+WATER_DEPART_FROM_CLIENT_CREATE_TABLE = True
+
 REDSHIFT_ETL_URI = os.environ.get('REDSHIFT_ETL_URI')
 MONGO_ROUTES_URI = os.environ.get('MONGO_ROUTES_URI')
 ENGINE_BITEST_URI = os.environ.get('ENGINE_BITEST_URI', default=None)
@@ -60,15 +65,39 @@ ARTISAN_DEPART_TABLE_COLUMNS = ['order_id',
 
 FOOD_DEPART_FROM_MERCHANT_TABLE_NAME = "food_depart_from_merchant_date_prediction"
 FOOD_DEPART_FROM_MERCHANT_TABLE_COLUMNS = ['order_id',
-                     'predicted_depart_date',
-                     'predicted_depart_dateL',
-                     'latitude', 'longitude']
+                                           'predicted_depart_date',
+                                           'predicted_depart_dateL',
+                                           'latitude', 'longitude']
+
+WATER_DEPART_TABLE_NAME = "water_depart_date_prediction"
+WATER_DEPART_TABLE_COLUMNS = ['order_id',
+                              'predicted_depart_date',
+                              'predicted_depart_dateL',
+                              'latitude', 'longitude']
+
+WATER_REACH_TABLE_NAME = "water_reach_date_prediction"
+WATER_REACH_TABLE_COLUMNS = ['order_id',
+                             'predicted_reach_date',
+                             'predicted_reach_dateL',
+                             'latitude', 'longitude']
 
 ARTISAN_DEPART_FROM_MERCHANT_TABLE_NAME = "artisan_depart_from_merchant_date_prediction"
 ARTISAN_DEPART_FROM_MERCHANT_TABLE_COLUMNS = ['order_id',
                      'predicted_depart_date',
                      'predicted_depart_dateL',
                      'latitude', 'longitude']
+
+WATER_DEPART_FROM_CLIENT_TABLE_NAME = "water_depart_from_client_date_prediction"
+WATER_DEPART_FROM_CLIENT_TABLE_COLUMNS = ['order_id',
+                                          'predicted_depart_from_client_date',
+                                          'predicted_depart_from_client_dateL',
+                                          'latitude', 'longitude']
+
+WATER_DELIVERY_TABLE_NAME = "water_delivery_date_prediction"
+WATER_DELIVERY_TABLE_COLUMNS = ['order_id',
+                                'predicted_delivery_date',
+                                'predicted_delivery_dateL',
+                                'latitude', 'longitude']
 
 DEPART_FROM_CLIENT_TABLE_NAME = "depart_from_client_date_prediction"
 DEPART_FROM_CLIENT_TABLE_COLUMNS = ['order_id',
@@ -87,7 +116,6 @@ DB_USER_GROUP = "data_rw" if TEST else "data_general_ro"
 
 test_pickle_file = "rick.pickle"
 chunk_size = 3000
-
 
 REACH_INTERCEPT = -0.414
 REACH_COEFFICIENTS = [-0.815, 0.407]
@@ -115,7 +143,6 @@ CREATE TABLE project_auto_events.reach_date_prediction
     predictedat  timestamp default getdate()
 );
 """
-
 
 CREATE_REACH_TO_SHOP_TABLE_QUERY = """
 CREATE TABLE if not exists {schema}.reach_to_shop_date_prediction
@@ -208,6 +235,58 @@ CREATE TABLE project_auto_events.artisan_depart_from_merchant_date_prediction
 );
 """
 
+WATER_DEPART_CREATE_TABLE_QUERY = """
+CREATE TABLE project_auto_events.water_depart_date_prediction
+(
+    prediction_id         BIGINT IDENTITY (0,1) NOT NULL,
+    order_id              varchar(256) sortkey,
+    predicted_depart_date  timestamp,
+    predicted_depart_dateL timestamp,
+    latitude              double precision,
+    longitude             double precision,
+    predictedat  timestamp default getdate()
+);
+"""
+
+WATER_REACH_CREATE_TABLE_QUERY = """
+CREATE TABLE project_auto_events.water_reach_date_prediction
+(
+    prediction_id         BIGINT IDENTITY (0,1) NOT NULL,
+    order_id              varchar(256) sortkey,
+    predicted_reach_date  timestamp,
+    predicted_reach_dateL timestamp,
+    latitude              double precision,
+    longitude             double precision,
+    predictedat  timestamp default getdate()
+);
+"""
+
+WATER_DEPART_FROM_CLIENT_CREATE_TABLE_QUERY = """
+CREATE TABLE {schema}.water_depart_from_client_date_prediction
+(
+    prediction_id                       BIGINT IDENTITY (0,1) NOT NULL,
+    order_id                            varchar(256) sortkey,
+    predicted_depart_from_client_date   timestamp,
+    predicted_depart_from_client_dateL  timestamp,
+    latitude                            double precision,
+    longitude                           double precision,
+    predictedat                         timestamp default getdate()
+);
+""".format(schema=SCHEMA_NAME)
+
+WATER_DELIVERY_CREATE_TABLE_QUERY = """
+CREATE TABLE if not exists {schema}.water_delivery_date_prediction
+(
+    prediction_id                       BIGINT IDENTITY (0,1) NOT NULL,
+    order_id                            varchar(256) sortkey,
+    predicted_delivery_date             timestamp,
+    predicted_delivery_dateL            timestamp,
+    latitude                            double precision,
+    longitude                           double precision,
+    predictedat                         timestamp default getdate()
+);
+""".format(schema=SCHEMA_NAME)
+
 DEPART_FROM_CLIENT_CREATE_TABLE_QUERY = """
 CREATE TABLE {schema}.depart_from_client_date_prediction
 (
@@ -242,8 +321,6 @@ DOMAIN_LIST = ['depart', 'reach', 'depart,reach', 'depart_from_client', 'depart,
                'depart,reach,depart_from_client,reach_to_merchant,deliver,depart_from_merchant,depart_from_courier_warehouse']
 DEFAULT_DOMAIN = 'depart,reach,depart_from_client,reach_to_merchant,deliver,depart_from_merchant,depart_from_courier_warehouse'
 
-
 DEFAULT_TYPE = 'HOURLY'
 
 WITH_PERIOD_TYPE = 'HOURLY,PERIOD'
-

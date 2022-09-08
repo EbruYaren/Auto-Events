@@ -12,6 +12,7 @@ from src import ATHENA
 from src.data_access import data_from_sql_file
 from datetime import datetime, timedelta
 
+
 @timer()
 def main():
     print("Cron started")
@@ -30,15 +31,12 @@ def main():
 
     domains = domain.split(',')
 
-
     print("Start date before hourly loop:", start_date)
     print("End date before hourly loop:", end_date)
-
 
     for pair in get_date_pairs(start_date, end_date):
         start, end = pair
         run(start, end, domains, courier_ids)
-
 
     with WRITE_ENGINE.begin() as connection:
         remove_duplicates(connection, config.REACH_TABLE_NAME, 'prediction_id', ['order_id'], config.SCHEMA_NAME)
@@ -50,8 +48,20 @@ def main():
         remove_duplicates(connection, config.REACH_TO_RESTAURANT_TABLE_NAME, 'prediction_id', ['order_id'],
                           config.SCHEMA_NAME)
         remove_duplicates(connection, config.DELIVERY_TABLE_NAME, 'prediction_id', ['order_id'], config.SCHEMA_NAME)
-        remove_duplicates(connection, config.FOOD_DEPART_TABLE_NAME, 'prediction_id', ['order_id'], config.SCHEMA_NAME)
-        remove_duplicates(connection, config.ARTISAN_DEPART_TABLE_NAME, 'prediction_id', ['order_id'], config.SCHEMA_NAME)
+        remove_duplicates(connection, config.FOOD_DEPART_TABLE_NAME, 'prediction_id', ['order_id'],
+                          config.SCHEMA_NAME)
+        remove_duplicates(connection, config.ARTISAN_DEPART_TABLE_NAME, 'prediction_id', ['order_id'],
+                          config.SCHEMA_NAME)
+        """
+        remove_duplicates(connection, config.WATER_REACH_TABLE_NAME, 'prediction_id', ['order_id'],
+                          config.SCHEMA_NAME)
+        remove_duplicates(connection, config.WATER_DEPART_TABLE_NAME, 'prediction_id', ['order_id'],
+                          config.SCHEMA_NAME)
+        remove_duplicates(connection, config.WATER_DEPART_FROM_CLIENT_TABLE_NAME, 'prediction_id', ['order_id'],
+                          config.SCHEMA_NAME)
+        remove_duplicates(connection, config.WATER_DELIVERY_TABLE_NAME, 'prediction_id', ['order_id'],
+                          config.SCHEMA_NAME)
+        """
 
     print("Duplicates are removed")
 
@@ -106,7 +116,22 @@ def run(start_date: str, end_date: str, domains: list, courier_ids: list):
         create_auto_table(config.FOOD_DEPART_CREATE_TABLE_QUERY, config.FOOD_DEPART_TABLE_NAME, 'Depart for Food')
 
     if config.ARTISAN_DEPART_CREATE_TABLE:
-        create_auto_table(config.ARTISAN_DEPART_CREATE_TABLE_QUERY, config.ARTISAN_DEPART_TABLE_NAME, 'Depart for Artisan')
+        create_auto_table(config.ARTISAN_DEPART_CREATE_TABLE_QUERY, config.ARTISAN_DEPART_TABLE_NAME,
+                          'Depart for Artisan')
+
+    if config.WATER_REACH_CREATE_TABLE:
+        create_auto_table(config.WATER_REACH_CREATE_TABLE_QUERY, config.WATER_REACH_TABLE_NAME, 'Reach for Water')
+
+    if config.WATER_DEPART_CREATE_TABLE:
+        create_auto_table(config.WATER_DEPART_CREATE_TABLE_QUERY, config.WATER_DEPART_TABLE_NAME, 'Depart for Water')
+
+    if config.WATER_DEPART_FROM_CLIENT_CREATE_TABLE:
+        create_auto_table(config.WATER_DEPART_FROM_CLIENT_CREATE_TABLE_QUERY,
+                          config.WATER_DEPART_FROM_CLIENT_TABLE_NAME,
+                          'Water Depart From Client')
+
+    if config.WATER_DELIVERY_CREATE_TABLE:
+        create_auto_table(config.WATER_DELIVERY_CREATE_TABLE_QUERY, config.WATER_DELIVERY_TABLE_NAME, 'Water Deliver')
 
     if config.FOOD_DEPART_FROM_MERCHANT_CREATE_TABLE:
         create_auto_table(config.FOOD_DEPART_FROM_MERCHANT_CREATE_TABLE_QUERY, config.FOOD_DEPART_FROM_MERCHANT_TABLE_NAME, 'Depart From Merchant for Food')
@@ -119,6 +144,8 @@ def run(start_date: str, end_date: str, domains: list, courier_ids: list):
     food_orders = Order(start_date, end_date, REDSHIFT_ETL, courier_ids, chunk_size=config.chunk_size, domain_type=2)
     artisan_orders = Order(start_date, end_date, REDSHIFT_ETL, courier_ids, chunk_size=config.chunk_size,
                            domain_type=6)
+    water_orders = Order(start_date, end_date, REDSHIFT_ETL, courier_ids, chunk_size=config.chunk_size, domains=domains,
+                         domain_type=4)
 
     for chunk_df in orders.fetch_orders_df():
         get_routes_and_process(chunk_df, domains, 1, start_date, end_date)
@@ -126,8 +153,8 @@ def run(start_date: str, end_date: str, domains: list, courier_ids: list):
         get_routes_and_process(chunk_df, domains, 2, start_date, end_date)
     for chunk_df in artisan_orders.fetch_orders_df():
         get_routes_and_process(chunk_df, domains, 6, start_date, end_date)
-
-
+    for chunk_df in water_orders.fetch_orders_df():
+        get_routes_and_process(chunk_df, domains, 4, start_date, end_date)
 
 
 def get_routes_and_process(chunk_df, domains, domain_type, start_date, end_date):
@@ -136,7 +163,6 @@ def get_routes_and_process(chunk_df, domains, domain_type, start_date, end_date)
     total_processed_routes_for_depart_from_client = 0
     total_processed_routes_for_reach_to_merchant = 0
     total_processed_orders_for_delivery = 0
-
 
     print('in fetch_orders_df. Shape:', chunk_df.shape)
 
@@ -164,32 +190,29 @@ def get_routes_and_process(chunk_df, domains, domain_type, start_date, end_date)
             print("Total Processed Routes for domain type {} Depart: {}".format(domain_type,
                                                                                 total_processed_routes_for_depart))
 
-
         if 'reach' in domains and domain_type not in (2, 6):
-            processed_reach_orders = reach_main(chunk_df, routes_df).get('routes')
+            processed_reach_orders = reach_main(chunk_df, routes_df, domain_type).get('routes')
             total_processed_routes_for_reach += processed_reach_orders
-            reach_predictions = reach_main(chunk_df, routes_df).get('preds')
+            reach_predictions = reach_main(chunk_df, routes_df, domain_type).get('preds')
             orders = chunk_df[['_id_oid', 'deliver_location__coordinates_lon', 'deliver_location__coordinates_lat']]
             reach_predictions = reach_predictions.merge(orders, left_on="_id_oid", right_on="_id_oid", how="inner")
             print("Total Processed Routes For Reach : ", total_processed_routes_for_reach)
 
-
         if 'depart_from_client' in domains and domain_type not in (2, 6):
-            reach_predictions = reach_predictions[reach_predictions.time.notna()][['_id_oid', 'time', 'time_l']].\
+            reach_predictions = reach_predictions[reach_predictions.time.notna()][['_id_oid', 'time', 'time_l']]. \
                 rename(columns={'time': 'predicted_reach_date'}).copy()
-            depart_from_client_dict = depart_from_client_main(chunk_df, routes_df, reach_predictions)
+            depart_from_client_dict = depart_from_client_main(chunk_df, routes_df, reach_predictions,
+                                                              domain_type)
             processed_depart_from_client_orders = depart_from_client_dict.get('routes')
             total_processed_routes_for_depart_from_client += processed_depart_from_client_orders
             print("Total Processed Routes for Depart from Client: ", total_processed_routes_for_depart_from_client)
             depart_from_client_predictions = depart_from_client_dict.get('preds')
 
-
         if 'deliver' in domains and domain_type not in (2, 6):
             reach_predictions = reach_predictions.rename(columns={'predicted_reach_date': 'time'}).copy()
-            result_dict = deliver_main(reach_predictions, depart_from_client_predictions)
+            result_dict = deliver_main(reach_predictions, depart_from_client_predictions, domain_type)
             total_processed_orders_for_delivery += result_dict.get('orders')
             print("Total Processed Orders For Delivery : ", total_processed_orders_for_delivery)
-
 
         if 'reach_to_merchant' in domains and domain_type in (2, 6):
             processed_reach_to_merchant_orders = reach_to_merchant_main(chunk_df, routes_df, domain_type)
@@ -197,9 +220,7 @@ def get_routes_and_process(chunk_df, domains, domain_type, start_date, end_date)
             print("Total Processed Routes For Reach To Merchant : ", total_processed_routes_for_reach_to_merchant)
 
 
-
-
-def reach_main(chunk_df: pd.DataFrame, routes_df: pd.DataFrame):
+def reach_main(chunk_df: pd.DataFrame, routes_df: pd.DataFrame, domain_type: int):
     order_ids = pd.DataFrame(chunk_df['_id_oid'], columns=['_id_oid'])
     processed_data = ReachDataProcessor(orders=chunk_df, routes=routes_df,
                                         minimum_location_limit=config.MINIMUM_LOCATION_LIMIT,
@@ -210,9 +231,14 @@ def reach_main(chunk_df: pd.DataFrame, routes_df: pd.DataFrame):
     predictions = bulk_predictor.predict_in_bulk()
     predictions = order_ids.merge(predictions, on='_id_oid', how='left')
 
-    writer = Writer(predictions, WRITE_ENGINE, config.REACH_TABLE_NAME, config.SCHEMA_NAME,
-                    config.REACH_TABLE_COLUMNS)
-    writer.write()
+    if domain_type in (1, 3):
+        writer = Writer(predictions, WRITE_ENGINE, config.REACH_TABLE_NAME, config.SCHEMA_NAME,
+                        config.REACH_TABLE_COLUMNS)
+        writer.write()
+    else:
+        writer_water = Writer(predictions, WRITE_ENGINE, config.WATER_REACH_TABLE_NAME, config.SCHEMA_NAME,
+                              config.WATER_REACH_TABLE_COLUMNS)
+        writer_water.write()
 
     dict = {
         'preds': predictions,
@@ -287,6 +313,10 @@ def depart_main(chunk_df: pd.DataFrame, routes_df: pd.DataFrame, domain_type: in
                 TABLE_NAME = config.ARTISAN_DEPART_TABLE_NAME
                 TABLE_COLUMNS = config.ARTISAN_DEPART_TABLE_COLUMNS
 
+        elif domain_type == 4:
+            TABLE_NAME = config.WATER_DEPART_TABLE_NAME
+            TABLE_COLUMNS = config.WATER_DEPART_TABLE_COLUMNS
+
         else:
             TABLE_NAME = config.DEPART_TABLE_NAME
             TABLE_COLUMNS = config.DEPART_TABLE_COLUMNS
@@ -297,11 +327,13 @@ def depart_main(chunk_df: pd.DataFrame, routes_df: pd.DataFrame, domain_type: in
         return chunk_df['delivery_route_oid'].nunique()
 
 
-def depart_from_client_main(chunk_df: pd.DataFrame, routes_df: pd.DataFrame, reach_predictions_df: pd.DataFrame):
+def depart_from_client_main(chunk_df: pd.DataFrame, routes_df: pd.DataFrame, reach_predictions_df: pd.DataFrame,
+                            domain_type: int):
     order_ids = pd.DataFrame(chunk_df['_id_oid'], columns=['_id_oid'])
     processed_data = DepartFromClientDataProcessor(
         orders=chunk_df, routes=routes_df,
-        minimum_location_limit=config.MINIMUM_LOCATION_LIMIT).process()
+        minimum_location_limit=config.MINIMUM_LOCATION_LIMIT,
+        domain_type=domain_type).process()
 
     single_predictor = DepartFromClientLogisticReachSinglePredictor(config.DEPART_FROM_CLIENT_INTERCEPT,
                                                                     config.DEPART_FROM_CLIENT_COEFFICIENTS)
@@ -311,9 +343,14 @@ def depart_from_client_main(chunk_df: pd.DataFrame, routes_df: pd.DataFrame, rea
     predictions = bulk_predictor.predict_in_bulk()
     predictions = order_ids.merge(predictions, on='_id_oid', how='left')
 
-    writer = Writer(predictions, WRITE_ENGINE, config.DEPART_FROM_CLIENT_TABLE_NAME, config.SCHEMA_NAME,
-                    config.DEPART_FROM_CLIENT_TABLE_COLUMNS)
-    writer.write()
+    if domain_type in (1, 3):
+        writer = Writer(predictions, WRITE_ENGINE, config.DEPART_FROM_CLIENT_TABLE_NAME, config.SCHEMA_NAME,
+                        config.DEPART_FROM_CLIENT_TABLE_COLUMNS)
+        writer.write()
+    else:
+        writer_water = Writer(predictions, WRITE_ENGINE, config.WATER_DEPART_FROM_CLIENT_TABLE_NAME, config.SCHEMA_NAME,
+                              config.WATER_DEPART_FROM_CLIENT_TABLE_COLUMNS)
+        writer_water.write()
 
     dict = {
         'preds': predictions,
@@ -323,22 +360,27 @@ def depart_from_client_main(chunk_df: pd.DataFrame, routes_df: pd.DataFrame, rea
     return dict
 
 
-def deliver_main(reach_df: pd.DataFrame, depart_from_client_df: pd.DataFrame):
+def deliver_main(reach_df: pd.DataFrame, depart_from_client_df: pd.DataFrame, domain_type: int):
     reach_df = reach_df[reach_df.time.notna()]
     depart_from_client_df = depart_from_client_df[depart_from_client_df.time.notna()]
     delivery_predictions = reach_df.merge(depart_from_client_df, on="_id_oid", how="inner")
     orders = depart_from_client_df['_id_oid'].nunique()
     delivery_predictions['time'] = delivery_predictions['time_x'] + (
-                delivery_predictions['time_y'] - delivery_predictions['time_x']) / 2
+            delivery_predictions['time_y'] - delivery_predictions['time_x']) / 2
     delivery_predictions['time_l_x'] = pd.to_datetime(delivery_predictions['time_l_x'])
     delivery_predictions['time_l_y'] = pd.to_datetime(delivery_predictions['time_l_y'])
     delivery_predictions['time_l'] = delivery_predictions['time_l_x'] + (
-                delivery_predictions['time_l_y'] - delivery_predictions['time_l_x']) / 2
+            delivery_predictions['time_l_y'] - delivery_predictions['time_l_x']) / 2
     delivery_predictions = delivery_predictions[['_id_oid', 'time', 'time_l', 'lat', 'lon']]
 
-    writer = Writer(delivery_predictions, WRITE_ENGINE, config.DELIVERY_TABLE_NAME, config.SCHEMA_NAME,
-                    config.DELIVERY_TABLE_COLUMNS)
-    writer.write()
+    if domain_type in (1, 3):
+        writer = Writer(delivery_predictions, WRITE_ENGINE, config.DELIVERY_TABLE_NAME, config.SCHEMA_NAME,
+                        config.DELIVERY_TABLE_COLUMNS)
+        writer.write()
+    else:
+        writer_water = Writer(delivery_predictions, WRITE_ENGINE, config.WATER_DELIVERY_TABLE_NAME, config.SCHEMA_NAME,
+                              config.WATER_DELIVERY_TABLE_COLUMNS)
+        writer_water.write()
 
     dict = {
         'preds': delivery_predictions,
