@@ -14,7 +14,7 @@ class Writer:
         self.__schema_name = schema_name
         self.__table_columns = table_cols
         ts = datetime.datetime.now().timestamp()
-        self.__filename = f'{self.__schema_name}-{self.__table_name}-{ts}.parquet'
+        self.__filename = f'{self.__schema_name}-{self.__table_name}-{ts}.csv'
 
     def __prepare_columns(self):
         self.__predictions = self.__predictions[['_id_oid', 'time', 'time_l', 'lat', 'lon']]
