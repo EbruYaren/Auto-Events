@@ -319,7 +319,10 @@ def depart_main(chunk_df: pd.DataFrame, routes_df: pd.DataFrame, domain_type: in
 
         else:
             TABLE_NAME = config.DEPART_TABLE_NAME
-            TABLE_COLUMNS = config.DEPART_TABLE_COLUMNS
+            TABLE_COLUMNS = ['order_id',
+                     'predicted_depart_date',
+                     'predicted_depart_dateL',
+                     'latitude', 'longitude', 'predictedat']
 
         writer = Writer(predictions, WRITE_ENGINE, TABLE_NAME, config.SCHEMA_NAME, TABLE_COLUMNS)
         writer.write()
