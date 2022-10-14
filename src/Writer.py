@@ -30,7 +30,7 @@ class Writer:
         s3_file_path = 's3://' + REDSHIFT_S3_BUCKET + '/auto-events/' + self.__filename
         with WRITE_ENGINE.begin() as connection:
             connection.execute(f"""
-            CREATE TABLE "{self.__filename}"
+            CREATE TEMP TABLE "{self.__filename}"
             (
                 _id_oid varchar(256),
                 time    timestamp,
