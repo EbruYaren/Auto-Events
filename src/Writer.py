@@ -32,11 +32,11 @@ class Writer:
             connection.execute(f"""
             COPY {self.__schema_name}.{self.__table_name} ({",".join(self.__table_columns)})
             FROM '{s3_file_path}'
-            iam_role '{REDSHIFT_IAM_ROLE}' FORMAT AS PARQUET;
+            iam_role '{REDSHIFT_IAM_ROLE}' delimeter '|' ignoreheader 1;
             """)
 
     def write(self):
         self.__prepare_columns()
-        self.__predictions.to_parquet('/tmp/' + self.__filename, index=False)
+        self.__predictions.to_csv('/tmp/' + self.__filename, sep='|', index=False)
         self.__to_s3()
         self.__copy_to_redshift()
