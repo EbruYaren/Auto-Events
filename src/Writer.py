@@ -1,6 +1,8 @@
+import boto3
 import pandas as pd
-from datetime import timedelta
-import src.config
+import datetime
+
+from src import WRITE_ENGINE, REDSHIFT_S3_REGION, REDSHIFT_S3_BUCKET, REDSHIFT_IAM_ROLE
 
 
 class Writer:
@@ -11,18 +13,30 @@ class Writer:
         self.__table_name = table_name
         self.__schema_name = schema_name
         self.__table_columns = table_cols
+        ts = datetime.datetime.now().timestamp()
+        self.__filename = f'{self.__schema_name}-{self.__table_name}-{ts}.parquet'
 
     def __prepare_columns(self):
         self.__predictions = self.__predictions[['_id_oid', 'time', 'time_l', 'lat', 'lon']]
         self.__predictions.columns = self.__table_columns
 
+    def __to_s3(self):
+        filepath = '/tmp/' + self.__filename
+        s3_file_name = '/auto-events/' + self.__filename
+        s3_client = boto3.client('s3', region_name=REDSHIFT_S3_REGION)
+        s3_client.upload_file(filepath, Bucket=REDSHIFT_S3_BUCKET, Key=s3_file_name)
+
+    def __copy_to_redshift(self):
+        s3_file_path = 's3://' + REDSHIFT_S3_BUCKET + '/auto-events/' + self.__filename
+        with WRITE_ENGINE.begin() as connection:
+            connection.execute(f"""
+            COPY {self.__schema_name}.{self.__table_name} ({",".join(self.__table_columns)})
+            FROM '{s3_file_path}'
+            iam_role '{REDSHIFT_IAM_ROLE}' FORMAT AS PARQUET;
+            """)
+
     def write(self):
         self.__prepare_columns()
-        self.__predictions.to_sql(
-            name=self.__table_name,
-            schema=self.__schema_name,
-            index=False,
-            if_exists='append',
-            method='multi',
-            con=self.__engine
-        )
+        self.__predictions.to_parquet('/tmp/' + self.__filename, index=False)
+        self.__to_s3()
+        self.__copy_to_redshift()

@@ -23,6 +23,10 @@ ENGINE_BITEST_URI = os.environ.get('ENGINE_BITEST_URI', default=None)
 ROUTE_OBJECT_COLLETION = None
 S3_STAGING_DIR = os.environ.get('S3_STAGING_DIR', 's3://aws-athena-query-result-164762854291-eu-west-1/')
 
+REDSHIFT_S3_BUCKET = os.getenv('REDSHIFT_S3_BUCKET', 'getir-data-redshift-temp-files')
+REDSHIFT_S3_REGION = os.getenv('REDSHIFT_S3_REGION', 'eu-west-1')
+REDSHIFT_IAM_ROLE = os.getenv('REDSHIFT_IAM_ROLE', 'arn:aws:iam::164762854291:role/data-cron-temp-files-role')
+
 WRITE_DEV_DB_URI = os.environ.get('DEV_DB_URI')
 WRITE_ETL_DB_URI = os.environ.get('WRITE_ETL_DB_URI')
 

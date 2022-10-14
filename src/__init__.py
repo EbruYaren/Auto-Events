@@ -1,4 +1,5 @@
-from src.config import REDSHIFT_ETL_URI, WRITE_DEV_DB_URI, WRITE_ETL_DB_URI, TEST, MONGO_ROUTES_URI, ENGINE_BITEST_URI
+from src.config import REDSHIFT_ETL_URI, WRITE_DEV_DB_URI, WRITE_ETL_DB_URI, TEST, MONGO_ROUTES_URI, \
+    REDSHIFT_S3_REGION, REDSHIFT_S3_BUCKET, REDSHIFT_IAM_ROLE
 from sqlalchemy import create_engine
 from pymongo import MongoClient
 from pyathena import connect, __version__
