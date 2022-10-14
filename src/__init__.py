@@ -36,11 +36,3 @@ try:
 except Exception as e:
     print(e)
     WRITE_ENGINE = None
-
-try:
-    if config.TEST:
-        ENGINE_BITEST = create_engine(ENGINE_BITEST_URI)
-    else:
-        ENGINE_BITEST = None
-except:
-    ENGINE_BITEST = None

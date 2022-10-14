@@ -19,7 +19,6 @@ WATER_DEPART_FROM_CLIENT_CREATE_TABLE = False
 
 REDSHIFT_ETL_URI = os.environ.get('REDSHIFT_ETL_URI')
 MONGO_ROUTES_URI = os.environ.get('MONGO_ROUTES_URI')
-ENGINE_BITEST_URI = os.environ.get('ENGINE_BITEST_URI', default=None)
 ROUTE_OBJECT_COLLETION = None
 S3_STAGING_DIR = os.environ.get('S3_STAGING_DIR', 's3://aws-athena-query-result-164762854291-eu-west-1/')
 
