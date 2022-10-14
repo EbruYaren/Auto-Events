@@ -38,7 +38,7 @@ class ReachBulkPredictor:
         predictions = reached[reached['row_number'] == 1][['_id_oid', 'time', 'lat', 'lon', 'time_zone']]
         if predictions.size > 0:
             predictions['time_l'] = predictions.apply(
-               lambda row: row.time.replace(tzinfo=pytz.utc).astimezone(row.time_zone).strftime('%Y-%m-%dT%H:%M:%S.%f')
+               lambda row: row.time.replace(tzinfo=pytz.utc).astimezone(row.time_zone).replace(tzinfo=None)
                , axis='columns')
         else:
             predictions.rename(columns={'time_zone': 'time_l'}, inplace=True)
@@ -113,7 +113,7 @@ class DepartBulkPredictor:
             print('new version of depart from warehouse running.. ')
             if labeled_times.size > 0:
                 labeled_times['time_l'] = labeled_times.apply(
-                    lambda row: row.time.replace(tzinfo=pytz.utc).astimezone(row.time_zone).strftime('%Y-%m-%dT%H:%M:%S.%f')
+                    lambda row: row.time.replace(tzinfo=pytz.utc).astimezone(row.time_zone).replace(tzinfo=None)
                     , axis='columns')
             else:
                 labeled_times.rename(columns={'time_zone': 'time_l'}, inplace=True)
@@ -224,7 +224,7 @@ class DepartFromClientBulkPredictor:
         labeled_times = labeled_times[labeled_times.row_number == 1][['_id_oid', 'time', 'lat', 'lon', 'time_zone']]
         if labeled_times.size > 0:
             labeled_times['time_l'] = labeled_times.apply(
-               lambda row: row.time.replace(tzinfo=pytz.utc).astimezone(row.time_zone).strftime('%Y-%m-%dT%H:%M:%S.%f')
+               lambda row: row.time.replace(tzinfo=pytz.utc).astimezone(row.time_zone).replace(tzinfo=None)
                , axis='columns')
 
         else:
