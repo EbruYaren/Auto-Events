@@ -30,9 +30,18 @@ class Writer:
         s3_file_path = 's3://' + REDSHIFT_S3_BUCKET + '/auto-events/' + self.__filename
         with WRITE_ENGINE.begin() as connection:
             connection.execute(f"""
-            COPY {self.__schema_name}.{self.__table_name} ({",".join(self.__table_columns)})
-            FROM '{s3_file_path}'
-            iam_role '{REDSHIFT_IAM_ROLE}' delimiter '|' ignoreheader 1;
+            CREATE TABLE "{self.__filename}"
+            (
+                _id_oid varchar(256),
+                time    timestamp,
+                time_l  timestamp,
+                lat     double precision,
+                lon     double precision
+            );
+            COPY "{self.__filename}" FROM '{s3_file_path}' iam_role '{REDSHIFT_IAM_ROLE}' delimiter '|' ignoreheader 1;
+            INSERT INTO {self.__schema_name}.{self.__table_name}
+                ({",".join(self.__table_columns)},predictedat)
+                (SELECT *, getdate() FROM "{self.__filename}");
             """)
 
     def write(self):
