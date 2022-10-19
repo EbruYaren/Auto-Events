@@ -293,7 +293,7 @@ def depart_main(chunk_df: pd.DataFrame, routes_df: pd.DataFrame, domain_type: in
                                          chunk_df, domain_type)
     predictions = bulk_predictor.predict_in_bulk()
 
-    if predictions is not None:
+    if predictions is not None and len(predictions) > 0:
         predictions = order_ids.merge(predictions, on='_id_oid', how='left')
 
         # 'depart_from_merchant', 'depart_from_courier_warehouse'
