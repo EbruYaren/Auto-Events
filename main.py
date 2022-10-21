@@ -149,6 +149,7 @@ def run(start_date: str, end_date: str, domains: list, courier_ids: list):
 
     for chunk_df in orders.fetch_orders_df():
         get_routes_and_process(chunk_df, domains, 1, start_date, end_date)
+        print('Market Orders fetched!')
     for chunk_df in food_orders.fetch_orders_df():
         get_routes_and_process(chunk_df, domains, 2, start_date, end_date)
     for chunk_df in artisan_orders.fetch_orders_df():
@@ -225,12 +226,12 @@ def reach_main(chunk_df: pd.DataFrame, routes_df: pd.DataFrame, domain_type: int
     processed_data = ReachDataProcessor(orders=chunk_df, routes=routes_df,
                                         minimum_location_limit=config.MINIMUM_LOCATION_LIMIT,
                                         fibonacci_base=config.FIBONACCI_BASE).process(include_all=False)
-
+    print('Reach data processed!')
     single_predictor = ReachLogisticReachSinglePredictor(config.REACH_INTERCEPT, config.REACH_COEFFICIENTS)
     bulk_predictor = ReachBulkPredictor(processed_data, single_predictor)
     predictions = bulk_predictor.predict_in_bulk()
     predictions = order_ids.merge(predictions, on='_id_oid', how='left')
-
+    print('Reach data predicted!')
     if domain_type in (1, 3):
         writer = Writer(predictions, WRITE_ENGINE, config.REACH_TABLE_NAME, config.SCHEMA_NAME,
                         config.REACH_TABLE_COLUMNS)
@@ -239,7 +240,7 @@ def reach_main(chunk_df: pd.DataFrame, routes_df: pd.DataFrame, domain_type: int
         writer_water = Writer(predictions, WRITE_ENGINE, config.WATER_REACH_TABLE_NAME, config.SCHEMA_NAME,
                               config.WATER_REACH_TABLE_COLUMNS)
         writer_water.write()
-
+    print('Reach predictions written!')
     dict = {
         'preds': predictions,
         'routes': chunk_df['delivery_route_oid'].nunique()
@@ -287,7 +288,7 @@ def depart_main(chunk_df: pd.DataFrame, routes_df: pd.DataFrame, domain_type: in
         orders=chunk_df, routes=routes_df,
         minimum_location_limit=config.MINIMUM_LOCATION_LIMIT,
         domain=domain).process()
-
+    print('Depart data processed!')
     single_predictor = DepartLogisticReachSinglePredictor(config.DEPART_INTERCEPT, config.DEPART_COEFFICIENTS)
     bulk_predictor = DepartBulkPredictor(processed_data, single_predictor, config.MAX_DISTANCE_FOR_DEPART_PREDICTION,
                                          chunk_df, domain_type)
@@ -295,7 +296,7 @@ def depart_main(chunk_df: pd.DataFrame, routes_df: pd.DataFrame, domain_type: in
 
     if predictions is not None and len(predictions) > 0:
         predictions = order_ids.merge(predictions, on='_id_oid', how='left')
-
+        print('Depart data predicted!')
         # 'depart_from_merchant', 'depart_from_courier_warehouse'
         if domain_type == 2:
             if domain == 'depart_from_merchant':
@@ -323,7 +324,7 @@ def depart_main(chunk_df: pd.DataFrame, routes_df: pd.DataFrame, domain_type: in
 
         writer = Writer(predictions, WRITE_ENGINE, TABLE_NAME, config.SCHEMA_NAME, TABLE_COLUMNS)
         writer.write()
-
+        print('Depart data predictions written!')
         return chunk_df['delivery_route_oid'].nunique()
 
 
@@ -334,7 +335,7 @@ def depart_from_client_main(chunk_df: pd.DataFrame, routes_df: pd.DataFrame, rea
         orders=chunk_df, routes=routes_df,
         minimum_location_limit=config.MINIMUM_LOCATION_LIMIT,
         domain_type=domain_type).process()
-
+    print('Depart from client data processed!')
     single_predictor = DepartFromClientLogisticReachSinglePredictor(config.DEPART_FROM_CLIENT_INTERCEPT,
                                                                     config.DEPART_FROM_CLIENT_COEFFICIENTS)
     bulk_predictor = DepartFromClientBulkPredictor(processed_data, single_predictor,
@@ -342,7 +343,7 @@ def depart_from_client_main(chunk_df: pd.DataFrame, routes_df: pd.DataFrame, rea
                                                    reach_predictions_df=reach_predictions_df)
     predictions = bulk_predictor.predict_in_bulk()
     predictions = order_ids.merge(predictions, on='_id_oid', how='left')
-
+    print('Depart from client data predicted!')
     if domain_type in (1, 3):
         writer = Writer(predictions, WRITE_ENGINE, config.DEPART_FROM_CLIENT_TABLE_NAME, config.SCHEMA_NAME,
                         config.DEPART_FROM_CLIENT_TABLE_COLUMNS)
@@ -351,7 +352,7 @@ def depart_from_client_main(chunk_df: pd.DataFrame, routes_df: pd.DataFrame, rea
         writer_water = Writer(predictions, WRITE_ENGINE, config.WATER_DEPART_FROM_CLIENT_TABLE_NAME, config.SCHEMA_NAME,
                               config.WATER_DEPART_FROM_CLIENT_TABLE_COLUMNS)
         writer_water.write()
-
+    print('Depart from client data predictions written!')
     dict = {
         'preds': predictions,
         'routes': chunk_df['delivery_route_oid'].nunique()
@@ -372,7 +373,7 @@ def deliver_main(reach_df: pd.DataFrame, depart_from_client_df: pd.DataFrame, do
     delivery_predictions['time_l'] = delivery_predictions['time_l_x'] + (
             delivery_predictions['time_l_y'] - delivery_predictions['time_l_x']) / 2
     delivery_predictions = delivery_predictions[['_id_oid', 'time', 'time_l', 'lat', 'lon']]
-
+    print('Deliver data predicted!')
     if domain_type in (1, 3):
         writer = Writer(delivery_predictions, WRITE_ENGINE, config.DELIVERY_TABLE_NAME, config.SCHEMA_NAME,
                         config.DELIVERY_TABLE_COLUMNS)
@@ -381,7 +382,7 @@ def deliver_main(reach_df: pd.DataFrame, depart_from_client_df: pd.DataFrame, do
         writer_water = Writer(delivery_predictions, WRITE_ENGINE, config.WATER_DELIVERY_TABLE_NAME, config.SCHEMA_NAME,
                               config.WATER_DELIVERY_TABLE_COLUMNS)
         writer_water.write()
-
+    print('Deliver data predictions written!')
     dict = {
         'preds': delivery_predictions,
         'orders': orders
