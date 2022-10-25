@@ -210,8 +210,9 @@ class DepartFromClientBulkPredictor:
         df['prev_distance_to_client'] = df.groupby('_id_oid')['distance_to_client'].shift(1)
         true_preds = df[(df['predictions']) &
                         (df['time'] >= df['reach_date']) &
-                        # (df['time'] >= df['predicted_reach_date']) &
-                        (df['prev_distance_to_client'] < self.__max_distance_to_client)]
+                        (df['prev_distance_to_client'] < self.__max_distance_to_client) &
+                        (((df['time'] - df['reach_date']).dt.total_seconds() > 90.0) | (
+                                    df['time'] >= df['deliver_date']))]
         true_preds['true_rn'] = true_preds.groupby('_id_oid')['time'].rank(method='min')
         true_preds = true_preds[true_preds['true_rn'] == 1]
         pred_rows = true_preds[['_id_oid', 'rn']]
