@@ -176,7 +176,7 @@ def get_routes_and_process(chunk_df, domains, domain_type, start_date, end_date)
         routes_df = routes.fetch_routes_df()
         print('Routes fetched:', len(routes_df))
 
-        merged_df = routes_df.merge(chunk_df, left_on="route_id", right_on="_id_oid", how="left").drop_duplicates()
+        merged_df = routes_df.merge(chunk_df, left_on="route_id", right_on="_id_oid", how="inner").drop_duplicates()
 
         reach_predictions = []
         depart_from_client_predictions = []
