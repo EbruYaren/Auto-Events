@@ -64,10 +64,10 @@ class ReachDataProcessor(DataProcessor):
                          'time', 'distance_bin', 'time_passed_in_bin', 'tbe',
                          'dbw_reach_client', 'dbw_reach_client_bin', 'lat', 'lon', 'time_zone']
 
-    def __init__(self, orders: pd.DataFrame, routes: pd.DataFrame, fibonacci_base, minimum_location_limit):
+    def __init__(self, fibonacci_base, minimum_location_limit, merged_df: pd.DataFrame):
 
         self.minimum_location_limit = minimum_location_limit
-        self.merged_df = routes.merge(orders, left_on="route_id", right_on="_id_oid", how="inner")
+        self.merged_df = merged_df
         self.fibonacci_base = fibonacci_base
 
     @staticmethod
@@ -123,8 +123,8 @@ class ReachDataProcessor(DataProcessor):
 
 class DepartDataProcessor(DataProcessor):
 
-    def __init__(self, orders: pd.DataFrame, routes: pd.DataFrame, minimum_location_limit: int, domain: str):
-        self.merged_df = routes.merge(orders, left_on="route_id", right_on="_id_oid", how="inner")
+    def __init__(self, minimum_location_limit: int, domain: str, merged_df: pd.DataFrame):
+        self.merged_df = merged_df
         self.minimum_location_limit = minimum_location_limit
         self.domain = domain
 
@@ -187,7 +187,7 @@ class DepartDataProcessor(DataProcessor):
             return pd.DataFrame([])
 
     def process(self):
-        m_df = self.merged_df.drop_duplicates().copy()
+        m_df = self.merged_df
         counts = m_df.groupby('route_id')['time'].count()
         filtered_ids = counts[counts >= self.minimum_location_limit].index
         m_df = m_df[m_df['route_id'].isin(filtered_ids)]
@@ -197,11 +197,12 @@ class DepartDataProcessor(DataProcessor):
 
 class DepartFromClientDataProcessor(DataProcessor):
 
-    def __init__(self, orders: pd.DataFrame, routes: pd.DataFrame, minimum_location_limit: int, domain_type: int):
+    def __init__(self, orders: pd.DataFrame, routes: pd.DataFrame, minimum_location_limit: int, domain_type: int, merged_df: pd.DataFrame):
         self.routes = routes
         self.orders = orders
         self.minimum_location_limit = minimum_location_limit
         self.domain_type = domain_type
+        self.merged_df = merged_df
 
     @staticmethod
     def get_movement_info(data: pd.DataFrame):
@@ -250,8 +251,7 @@ class DepartFromClientDataProcessor(DataProcessor):
 
     def process(self):
         # Add returning logs
-        m_df = self.routes.merge(self.orders, left_on="route_id", right_on="_id_oid", how="inner")
-        m_df = m_df.drop_duplicates()
+        m_df = self.merged_df
         # Add next route into tail
         if self.domain_type in (1, 3):
             job_routes = m_df.groupby(['delivery_job_oid', 'route_id'])['time'].max().reset_index().sort_values(['delivery_job_oid', 'time'])
@@ -279,11 +279,11 @@ class ReachToMerchantDataProcessor(DataProcessor):
                          'time', 'distance_bin', 'time_passed_in_bin', 'tbe',
                          'dbw_reach_client', 'dbw_reach_client_bin', 'lat', 'lon', 'time_zone']
 
-    def __init__(self, orders: pd.DataFrame, routes: pd.DataFrame, fibonacci_base, minimum_location_limit,
-                 domain_type: int):
+    def __init__(self, fibonacci_base, minimum_location_limit,
+                 domain_type: int, merged_df: pd.DataFrame):
 
         self.minimum_location_limit = minimum_location_limit
-        self.merged_df = routes.merge(orders, left_on="route_id", right_on="_id_oid", how="inner")
+        self.merged_df = merged_df
         self.fibonacci_base = fibonacci_base
         self.domain_type = domain_type
 
