@@ -176,6 +176,8 @@ def get_routes_and_process(chunk_df, domains, domain_type, start_date, end_date)
         routes_df = routes.fetch_routes_df()
         print('Routes fetched:', len(routes_df))
 
+        merged_df = routes_df.merge(chunk_df, left_on="route_id", right_on="_id_oid", how="inner").drop_duplicates()
+
         reach_predictions = []
         depart_from_client_predictions = []
 
@@ -183,18 +185,18 @@ def get_routes_and_process(chunk_df, domains, domain_type, start_date, end_date)
             if domain_type in (2, 6):
                 chunk_df = chunk_df[chunk_df.domaintypes.isin([1, 3])]
                 for domain in ['depart_from_merchant', 'depart_from_courier_warehouse']:
-                    processed_depart_orders = depart_main(chunk_df, routes_df, domain_type, domain)
+                    processed_depart_orders = depart_main(chunk_df, domain_type, domain, merged_df)
                     total_processed_routes_for_depart += (processed_depart_orders or 0)
             else:
-                processed_depart_orders = depart_main(chunk_df, routes_df, domain_type, '')
+                processed_depart_orders = depart_main(chunk_df, domain_type, '', merged_df)
                 total_processed_routes_for_depart += (processed_depart_orders or 0)
             print("Total Processed Routes for domain type {} Depart: {}".format(domain_type,
                                                                                 total_processed_routes_for_depart))
 
         if 'reach' in domains and domain_type not in (2, 6):
-            processed_reach_orders = reach_main(chunk_df, routes_df, domain_type).get('routes')
+            processed_reach_orders = reach_main(chunk_df, domain_type, merged_df).get('routes')
             total_processed_routes_for_reach += processed_reach_orders
-            reach_predictions = reach_main(chunk_df, routes_df, domain_type).get('preds')
+            reach_predictions = reach_main(chunk_df, domain_type, merged_df).get('preds')
             orders = chunk_df[['_id_oid', 'deliver_location__coordinates_lon', 'deliver_location__coordinates_lat']]
             reach_predictions = reach_predictions.merge(orders, left_on="_id_oid", right_on="_id_oid", how="inner")
             print("Total Processed Routes For Reach : ", total_processed_routes_for_reach)
@@ -203,7 +205,7 @@ def get_routes_and_process(chunk_df, domains, domain_type, start_date, end_date)
             reach_predictions = reach_predictions[reach_predictions.time.notna()][['_id_oid', 'time', 'time_l']]. \
                 rename(columns={'time': 'predicted_reach_date'}).copy()
             depart_from_client_dict = depart_from_client_main(chunk_df, routes_df, reach_predictions,
-                                                              domain_type)
+                                                              domain_type, merged_df)
             processed_depart_from_client_orders = depart_from_client_dict.get('routes')
             total_processed_routes_for_depart_from_client += processed_depart_from_client_orders
             print("Total Processed Routes for Depart from Client: ", total_processed_routes_for_depart_from_client)
@@ -216,16 +218,16 @@ def get_routes_and_process(chunk_df, domains, domain_type, start_date, end_date)
             print("Total Processed Orders For Delivery : ", total_processed_orders_for_delivery)
 
         if 'reach_to_merchant' in domains and domain_type in (2, 6):
-            processed_reach_to_merchant_orders = reach_to_merchant_main(chunk_df, routes_df, domain_type)
+            processed_reach_to_merchant_orders = reach_to_merchant_main(chunk_df, domain_type, merged_df)
             total_processed_routes_for_reach_to_merchant += processed_reach_to_merchant_orders
             print("Total Processed Routes For Reach To Merchant : ", total_processed_routes_for_reach_to_merchant)
 
 
-def reach_main(chunk_df: pd.DataFrame, routes_df: pd.DataFrame, domain_type: int):
+def reach_main(chunk_df: pd.DataFrame, domain_type: int, merged_df: pd.DataFrame):
     order_ids = pd.DataFrame(chunk_df['_id_oid'], columns=['_id_oid'])
-    processed_data = ReachDataProcessor(orders=chunk_df, routes=routes_df,
-                                        minimum_location_limit=config.MINIMUM_LOCATION_LIMIT,
-                                        fibonacci_base=config.FIBONACCI_BASE).process(include_all=False)
+    processed_data = ReachDataProcessor(minimum_location_limit=config.MINIMUM_LOCATION_LIMIT,
+                                        fibonacci_base=config.FIBONACCI_BASE,
+                                        merged_df=merged_df).process(include_all=False)
     print('Reach data processed!')
     single_predictor = ReachLogisticReachSinglePredictor(config.REACH_INTERCEPT, config.REACH_COEFFICIENTS)
     bulk_predictor = ReachBulkPredictor(processed_data, single_predictor)
@@ -249,12 +251,12 @@ def reach_main(chunk_df: pd.DataFrame, routes_df: pd.DataFrame, domain_type: int
     return dict
 
 
-def reach_to_merchant_main(chunk_df: pd.DataFrame, routes_df: pd.DataFrame, domain_type):
+def reach_to_merchant_main(chunk_df: pd.DataFrame, domain_type, merged_df: pd.DataFrame):
     print('Length:', len(chunk_df), 'NA column counts:', chunk_df.isna().sum()[chunk_df.isna().sum().gt(0)].to_dict())
     order_ids = pd.DataFrame(chunk_df['_id_oid'], columns=['_id_oid'])
     processed_data = ReachToMerchantDataProcessor(
-        orders=chunk_df, routes=routes_df, minimum_location_limit=config.MINIMUM_LOCATION_LIMIT,
-        fibonacci_base=config.FIBONACCI_BASE, domain_type=domain_type).process(include_all=False)
+        minimum_location_limit=config.MINIMUM_LOCATION_LIMIT,
+        fibonacci_base=config.FIBONACCI_BASE, domain_type=domain_type, merged_df=merged_df).process(include_all=False)
 
     if processed_data is None:
         print("Prediction could not be performed because there is no route information.")
@@ -282,12 +284,12 @@ def reach_to_merchant_main(chunk_df: pd.DataFrame, routes_df: pd.DataFrame, doma
     return chunk_df['delivery_route_oid'].nunique()
 
 
-def depart_main(chunk_df: pd.DataFrame, routes_df: pd.DataFrame, domain_type: int, domain: str):
+def depart_main(chunk_df: pd.DataFrame, domain_type: int, domain: str, merged_df: pd.DataFrame):
     order_ids = pd.DataFrame(chunk_df['_id_oid'], columns=['_id_oid'])
     processed_data = DepartDataProcessor(
-        orders=chunk_df, routes=routes_df,
         minimum_location_limit=config.MINIMUM_LOCATION_LIMIT,
-        domain=domain).process()
+        domain=domain,
+        merged_df=merged_df).process()
     print('Depart data processed!')
     single_predictor = DepartLogisticReachSinglePredictor(config.DEPART_INTERCEPT, config.DEPART_COEFFICIENTS)
     bulk_predictor = DepartBulkPredictor(processed_data, single_predictor, config.MAX_DISTANCE_FOR_DEPART_PREDICTION,
@@ -329,12 +331,13 @@ def depart_main(chunk_df: pd.DataFrame, routes_df: pd.DataFrame, domain_type: in
 
 
 def depart_from_client_main(chunk_df: pd.DataFrame, routes_df: pd.DataFrame, reach_predictions_df: pd.DataFrame,
-                            domain_type: int):
+                            domain_type: int, merged_df: pd.DataFrame):
     order_ids = pd.DataFrame(chunk_df['_id_oid'], columns=['_id_oid'])
     processed_data = DepartFromClientDataProcessor(
         orders=chunk_df, routes=routes_df,
         minimum_location_limit=config.MINIMUM_LOCATION_LIMIT,
-        domain_type=domain_type).process()
+        domain_type=domain_type,
+        merged_df=merged_df).process()
     print('Depart from client data processed!')
     single_predictor = DepartFromClientLogisticReachSinglePredictor(config.DEPART_FROM_CLIENT_INTERCEPT,
                                                                     config.DEPART_FROM_CLIENT_COEFFICIENTS)
