@@ -89,7 +89,7 @@ def create_auto_table(CREATE_TABLE_QUERY: str, CREATE_TABLE_NAME: str, name: str
 
 def fetch_orders_and_process(start_date, end_date, start_time, courier_ids: [], domains, domain_type: int):
     orders = Order(start_date, end_date, REDSHIFT_ETL, courier_ids, chunk_size=config.chunk_size, domains=domains,
-                   domain_type=1)
+                   domain_type=domain_type)
 
     order_index = -1
     orders_fetch = orders.fetch_orders_df()
