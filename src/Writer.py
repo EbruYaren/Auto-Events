@@ -7,14 +7,19 @@ from src import WRITE_ENGINE, REDSHIFT_S3_REGION, REDSHIFT_S3_BUCKET, REDSHIFT_I
 
 class Writer:
 
-    def __init__(self, predictions: pd.DataFrame, engine, table_name, schema_name, table_cols):
+    def __init__(self, predictions: pd.DataFrame, engine, table_name, schema_name, table_cols, run_start: str):
         self.__predictions = predictions
         self.__engine = engine
         self.__table_name = table_name
         self.__schema_name = schema_name
         self.__table_columns = table_cols
-        ts = datetime.datetime.now().timestamp()
-        self.__filename = f'{self.__schema_name}-{self.__table_name}-{ts}.csv'
+        self.__run_start = run_start
+
+        ts = datetime.datetime.now()
+
+        self.__filename = f'{self.__run_start}-{self.__schema_name}-{self.__table_name}-{ts}.csv'
+
+        self.__file_prefix = f'{self.__run_start}-{self.__schema_name}-{self.__table_name}'
 
     def __prepare_columns(self):
         self.__predictions = self.__predictions[['_id_oid', 'time', 'time_l', 'lat', 'lon']]
@@ -26,8 +31,9 @@ class Writer:
         s3_client = boto3.client('s3', region_name=REDSHIFT_S3_REGION)
         s3_client.upload_file(filepath, Bucket=REDSHIFT_S3_BUCKET, Key=s3_file_name)
 
-    def __copy_to_redshift(self):
-        s3_file_path = 's3://' + REDSHIFT_S3_BUCKET + '/auto-events/' + self.__filename
+
+    def copy_to_redshift(self):
+        s3_file_path = 's3://' + REDSHIFT_S3_BUCKET + '/auto-events/' + self.__file_prefix
         with WRITE_ENGINE.begin() as connection:
             connection.execute(f"""
             COPY {self.__schema_name}.{self.__table_name} ({",".join(self.__table_columns)})
@@ -35,8 +41,9 @@ class Writer:
             iam_role '{REDSHIFT_IAM_ROLE}' delimeter '|' ignoreheader 1;
             """)
 
+
+
     def write(self):
         self.__prepare_columns()
         self.__predictions.to_csv('/tmp/' + self.__filename, sep='|', index=False)
         self.__to_s3()
-        self.__copy_to_redshift()
