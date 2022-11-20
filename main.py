@@ -212,7 +212,7 @@ def get_routes_and_process(chunk_df, domains, domain_type, start_date, end_date,
             reach_predictions = reach_predictions[reach_predictions.time.notna()][['_id_oid', 'time', 'time_l']]. \
                 rename(columns={'time': 'predicted_reach_date'}).copy()
             depart_from_client_dict = depart_from_client_main(chunk_df, routes_df, reach_predictions,
-                                                              domain_type, merged_df, start_time)
+                                                              domain_type, merged_df, start_time, last_chunk)
             processed_depart_from_client_orders = depart_from_client_dict.get('routes')
             total_processed_routes_for_depart_from_client += processed_depart_from_client_orders
             print("Total Processed Routes for Depart from Client: ", total_processed_routes_for_depart_from_client)
@@ -220,12 +220,12 @@ def get_routes_and_process(chunk_df, domains, domain_type, start_date, end_date,
 
         if 'deliver' in domains and domain_type not in (2, 6):
             reach_predictions = reach_predictions.rename(columns={'predicted_reach_date': 'time'}).copy()
-            result_dict = deliver_main(reach_predictions, depart_from_client_predictions, domain_type, start_time)
+            result_dict = deliver_main(reach_predictions, depart_from_client_predictions, domain_type, start_time, last_chunk)
             total_processed_orders_for_delivery += result_dict.get('orders')
             print("Total Processed Orders For Delivery : ", total_processed_orders_for_delivery)
 
         if 'reach_to_merchant' in domains and domain_type in (2, 6):
-            processed_reach_to_merchant_orders = reach_to_merchant_main(chunk_df, domain_type, merged_df, start_time)
+            processed_reach_to_merchant_orders = reach_to_merchant_main(chunk_df, domain_type, merged_df, start_time, last_chunk)
             total_processed_routes_for_reach_to_merchant += processed_reach_to_merchant_orders
             print("Total Processed Routes For Reach To Merchant : ", total_processed_routes_for_reach_to_merchant)
 
