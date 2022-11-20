@@ -192,18 +192,18 @@ def get_routes_and_process(chunk_df, domains, domain_type, start_date, end_date,
             if domain_type in (2, 6):
                 chunk_df = chunk_df[chunk_df.domaintypes.isin([1, 3])]
                 for domain in ['depart_from_merchant', 'depart_from_courier_warehouse']:
-                    processed_depart_orders = depart_main(chunk_df, domain_type, domain, merged_df, start_time)
+                    processed_depart_orders = depart_main(chunk_df, domain_type, domain, merged_df, start_time, last_chunk)
                     total_processed_routes_for_depart += (processed_depart_orders or 0)
             else:
-                processed_depart_orders = depart_main(chunk_df, domain_type, '', merged_df, start_time)
+                processed_depart_orders = depart_main(chunk_df, domain_type, '', merged_df, start_time, last_chunk)
                 total_processed_routes_for_depart += (processed_depart_orders or 0)
             print("Total Processed Routes for domain type {} Depart: {}".format(domain_type,
                                                                                 total_processed_routes_for_depart))
 
         if 'reach' in domains and domain_type not in (2, 6):
-            processed_reach_orders = reach_main(chunk_df, domain_type, merged_df, start_time).get('routes')
+            processed_reach_orders = reach_main(chunk_df, domain_type, merged_df, start_time, last_chunk).get('routes')
             total_processed_routes_for_reach += processed_reach_orders
-            reach_predictions = reach_main(chunk_df, domain_type, merged_df, start_time).get('preds')
+            reach_predictions = reach_main(chunk_df, domain_type, merged_df, start_time, last_chunk).get('preds')
             orders = chunk_df[['_id_oid', 'deliver_location__coordinates_lon', 'deliver_location__coordinates_lat']]
             reach_predictions = reach_predictions.merge(orders, left_on="_id_oid", right_on="_id_oid", how="inner")
             print("Total Processed Routes For Reach : ", total_processed_routes_for_reach)
