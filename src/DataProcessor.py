@@ -277,7 +277,7 @@ class ReachToMerchantDataProcessor(DataProcessor):
     unique_fibonacci_numbers = [0, 1, 2, 3, 5, 8, 13, 21]
     returning_columns = ['_id_oid', 'delivery_route_oid', 'courier_courier_oid', 'reach_date',
                          'time', 'distance_bin', 'time_passed_in_bin', 'tbe',
-                         'dbw_reach_client', 'dbw_reach_client_bin', 'lat', 'lon', 'time_zone']
+                         'lat', 'lon', 'time_zone']
 
     def __init__(self, fibonacci_base, minimum_location_limit,
                  domain_type: int, merged_df: pd.DataFrame):
@@ -329,11 +329,7 @@ class ReachToMerchantDataProcessor(DataProcessor):
             'is_distance_bin_changed'].cumsum()
         m_df['time_passed_in_bin'] = m_df.sort_values(['route_id', 'distance_bin_group', 'time']).groupby(
             ['route_id', 'distance_bin_group'])['tbe'].cumsum()
-        m_df['dbw_reach_client'] = m_df.apply(lambda x: self.haversine(x['lon'], x['lat'],
-                                                                       x['reached_to_restaurant_lon'],
-                                                                       x['reached_to_restaurant_lat']) * 1000,
-                                              axis=1)
-        m_df['dbw_reach_client_bin'] = m_df.apply(lambda x: np.nan if pd.isna(x['dbw_reach_client']) else self.find_distance_bin(x.dbw_reach_client), axis=1)
+
         if include_all:
             return m_df
         else:
