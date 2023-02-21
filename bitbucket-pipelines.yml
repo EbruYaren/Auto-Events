@@ -1,6 +1,33 @@
+definitions:
+  steps:
+    - step: &devsecops-blocker
+        name: Block deployment if security risks detected
+        image:
+          name: 164762854291.dkr.ecr.eu-west-1.amazonaws.com/bitbucket-devsecops-steps:latest
+          aws:
+            access-key: $DATA_DEVSECOPS_IMAGE_PULLER_AWS_ACCESS_KEY_ID
+            secret-key: $DATA_DEVSECOPS_IMAGE_PULLER_AWS_SECRET_ACCESS_KEY
+        services:
+          - docker
+        size: 2x
+        script:
+          - /all.sh
+    - step: &devsecops-pr
+        name: Check for security risks and code quality
+        image:
+          name: 164762854291.dkr.ecr.eu-west-1.amazonaws.com/bitbucket-devsecops-steps:latest
+          aws:
+            access-key: $DATA_DEVSECOPS_IMAGE_PULLER_AWS_ACCESS_KEY_ID
+            secret-key: $DATA_DEVSECOPS_IMAGE_PULLER_AWS_SECRET_ACCESS_KEY
+        services:
+          - docker
+        size: 2x
+        script:
+          - /all-pr.sh
 pipelines:
   tags:
     airflow/*:
+      - step: *devsecops-blocker
       - step:
           image:
             name: 164762854291.dkr.ecr.eu-west-1.amazonaws.com/awscli:python3.8-1.19.6
@@ -11,3 +38,9 @@ pipelines:
           script:
             - aws s3 cp $BITBUCKET_CLONE_DIR s3://getir-airflow-assets/repos/${BITBUCKET_REPO_SLUG}/ --recursive --exclude '.git/*'
           deployment: prod
+  pull-requests:
+    "**":
+      - step: *devsecops-pr
+  custom:
+    manual-devsecops-analysis:
+      - step: *devsecops-pr
