@@ -12,6 +12,8 @@ from src import ATHENA
 from src.data_access import data_from_sql_file
 from datetime import datetime, timedelta
 from src.config import chunk_size
+from threading import Thread
+
 
 @timer()
 def main():
@@ -87,24 +89,6 @@ def create_auto_table(CREATE_TABLE_QUERY: str, CREATE_TABLE_NAME: str, name: str
         print("{} Table created", name)
 
 
-def fetch_orders_and_process(start_date, end_date, start_time, courier_ids: [], domains, domain_type: int):
-    orders = Order(start_date, end_date, REDSHIFT_ETL, courier_ids, chunk_size=config.chunk_size, domains=domains,
-                   domain_type=domain_type)
-
-    order_index = -1
-    orders_fetch = orders.fetch_orders_df()
-    orders_len = orders_fetch.gi_frame.f_locals['result'].rowcount
-    last_chunk = False
-
-    for chunk_df in orders_fetch:
-        order_index += 1
-        if order_index == (orders_len // chunk_size):
-            last_chunk = True
-        get_routes_and_process(chunk_df, domains, domain_type, start_date, end_date, start_time, last_chunk)
-    if orders_len > 0:
-        print('Market Orders fetched!')
-
-
 def run(start_date: str, end_date: str, domains: list, courier_ids: list):
     print("Start date:", start_date)
     print("End date:", end_date)
@@ -154,15 +138,53 @@ def run(start_date: str, end_date: str, domains: list, courier_ids: list):
         create_auto_table(config.WATER_DELIVERY_CREATE_TABLE_QUERY, config.WATER_DELIVERY_TABLE_NAME, 'Water Deliver')
 
     if config.FOOD_DEPART_FROM_MERCHANT_CREATE_TABLE:
-        create_auto_table(config.FOOD_DEPART_FROM_MERCHANT_CREATE_TABLE_QUERY, config.FOOD_DEPART_FROM_MERCHANT_TABLE_NAME, 'Depart From Merchant for Food')
+        create_auto_table(config.FOOD_DEPART_FROM_MERCHANT_CREATE_TABLE_QUERY,
+                          config.FOOD_DEPART_FROM_MERCHANT_TABLE_NAME, 'Depart From Merchant for Food')
 
     if config.ARTISAN_DEPART_FROM_MERCHANT_CREATE_TABLE:
-        create_auto_table(config.ARTISAN_DEPART_FROM_MERCHANT_CREATE_TABLE_QUERY, config.ARTISAN_DEPART_FROM_MERCHANT_TABLE_NAME, 'Depart From Merchant for Artisan')
+        create_auto_table(config.ARTISAN_DEPART_FROM_MERCHANT_CREATE_TABLE_QUERY,
+                          config.ARTISAN_DEPART_FROM_MERCHANT_TABLE_NAME, 'Depart From Merchant for Artisan')
+
+    if config.FOOD_REACH_TO_CLIENT_TABLE:
+        create_auto_table(config.FOOD_REACH_TABLE_CREATE_QUERY,
+                          config.FOOD_REACH_TO_CLIENT_TABLE_NAME, 'Reach to client for Food')
+
+    if config.ARTISAN_REACH_TO_CLIENT_TABLE:
+        create_auto_table(config.ARTISAN_REACH_TABLE_CREATE_QUERY,
+                          config.ARTISAN_REACH_TO_CLIENT_TABLE_NAME, 'Reach to client for Artisan')
+
+    thread1 = Thread(target=fetch_orders_and_process, args=[start_date, end_date, start_time, courier_ids, domains, 1])
+    thread2 = Thread(target=fetch_orders_and_process, args=[start_date, end_date, start_time, courier_ids, domains, 2])
+    thread4 = Thread(target=fetch_orders_and_process, args=[start_date, end_date, start_time, courier_ids, domains, 4])
+    thread6 = Thread(target=fetch_orders_and_process, args=[start_date, end_date, start_time, courier_ids, domains, 6])
+
+    thread1.start()
+    thread2.start()
+    thread4.start()
+    thread6.start()
+
+    thread1.join()
+    thread2.join()
+    thread4.join()
+    thread6.join()
 
 
-    for i in [1, 2, 6, 4]:
-        fetch_orders_and_process(start_date, end_date, start_time, courier_ids, domains, domain_type=i)
+def fetch_orders_and_process(start_date, end_date, start_time, courier_ids: [], domains, domain_type: int):
+    orders = Order(start_date, end_date, REDSHIFT_ETL, courier_ids, chunk_size=config.chunk_size, domains=domains,
+                   domain_type=domain_type)
 
+    order_index = -1
+    orders_fetch = orders.fetch_orders_df()
+    orders_len = orders_fetch.gi_frame.f_locals['result'].rowcount
+    last_chunk = False
+
+    for chunk_df in orders_fetch:
+        order_index += 1
+        if order_index == (orders_len // chunk_size):
+            last_chunk = True
+        get_routes_and_process(chunk_df, domains, domain_type, start_date, end_date, start_time, last_chunk)
+    if orders_len > 0:
+        print('Market Orders fetched!')
 
 
 def get_routes_and_process(chunk_df, domains, domain_type, start_date, end_date, start_time, last_chunk):
@@ -234,13 +256,14 @@ def reach_main(chunk_df: pd.DataFrame, domain_type: int, merged_df: pd.DataFrame
     order_ids = pd.DataFrame(chunk_df['_id_oid'], columns=['_id_oid'])
     processed_data = ReachDataProcessor(minimum_location_limit=config.MINIMUM_LOCATION_LIMIT,
                                         fibonacci_base=config.FIBONACCI_BASE,
-                                        merged_df=merged_df).process(include_all=False)
+                                        merged_df=merged_df,
+                                        domain_type=domain_type).process(include_all=False)
     print('Reach data processed!')
     single_predictor = ReachLogisticReachSinglePredictor(config.REACH_INTERCEPT, config.REACH_COEFFICIENTS)
     bulk_predictor = ReachBulkPredictor(processed_data, single_predictor)
     predictions = bulk_predictor.predict_in_bulk()
     predictions = order_ids.merge(predictions, on='_id_oid', how='left')
-    print('Reach data predicted!')
+    print('Reach data predicted for domain: ', domain_type)
 
     if domain_type in (1, 3):
         writer = Writer(predictions, WRITE_ENGINE, config.REACH_TABLE_NAME, config.SCHEMA_NAME,
@@ -248,6 +271,14 @@ def reach_main(chunk_df: pd.DataFrame, domain_type: int, merged_df: pd.DataFrame
         writer.write()
         if last_chunk:
             writer.copy_to_redshift()
+    elif domain_type == 2:
+        writer = Writer(predictions, WRITE_ENGINE, config.FOOD_REACH_TO_CLIENT_TABLE, config.SCHEMA_NAME,
+                        config.FOOD_REACH_TO_CLIENT_TABLE_COLUMNS, start_time)
+        writer.write()
+    elif domain_type == 6:
+        writer = Writer(predictions, WRITE_ENGINE, config.ARTISAN_REACH_TO_CLIENT_TABLE, config.SCHEMA_NAME,
+                        config.ARTISAN_REACH_TO_CLIENT_TABLE_COLUMNS, start_time)
+        writer.write()
     else:
         writer_water = Writer(predictions, WRITE_ENGINE, config.WATER_REACH_TABLE_NAME, config.SCHEMA_NAME,
                               config.WATER_REACH_TABLE_COLUMNS, start_time)

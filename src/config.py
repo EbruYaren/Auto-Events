@@ -12,6 +12,9 @@ FOOD_DEPART_CREATE_TABLE = False
 ARTISAN_DEPART_FROM_MERCHANT_CREATE_TABLE = False
 FOOD_DEPART_FROM_MERCHANT_CREATE_TABLE = False
 
+FOOD_REACH_TO_CLIENT_TABLE = True
+ARTISAN_REACH_TO_CLIENT_TABLE = True
+
 WATER_REACH_CREATE_TABLE = False
 WATER_DEPART_CREATE_TABLE = False
 WATER_DELIVERY_CREATE_TABLE = False
@@ -46,6 +49,17 @@ REACH_TO_RESTAURANT_TABLE_COLUMNS = ['order_id',
                                      'predicted_reach_date',
                                      'predicted_reach_dateL',
                                      'latitude', 'longitude']
+
+FOOD_REACH_TO_CLIENT_TABLE_NAME = "food_reach_date_prediction"
+FOOD_REACH_TO_CLIENT_TABLE_COLUMNS = ['order_id',
+                                      'predicted_depart_date',
+                                      'predicted_depart_dateL',
+                                      'latitude', 'longitude']
+ARTISAN_REACH_TO_CLIENT_TABLE_NAME = "artisan_reach_date_prediction"
+ARTISAN_REACH_TO_CLIENT_TABLE_COLUMNS = ['order_id',
+                                         'predicted_depart_date',
+                                         'predicted_depart_dateL',
+                                         'latitude', 'longitude']
 
 DEPART_TABLE_NAME = "depart_date_prediction"
 DEPART_TABLE_COLUMNS = ['order_id',
@@ -237,6 +251,31 @@ CREATE TABLE project_auto_events.artisan_depart_from_merchant_date_prediction
 );
 """
 
+FOOD_REACH_TABLE_CREATE_QUERY = """
+CREATE TABLE project_auto_events.food_reach_date_prediction
+(
+    prediction_id         BIGINT IDENTITY (0,1) NOT NULL,
+    order_id              varchar(256) sortkey,
+    predicted_reach_date  timestamp,
+    predicted_reach_dateL timestamp,
+    latitude              double precision,
+    longitude             double precision,
+    predictedat  timestamp default getdate()
+);
+"""
+
+ARTISAN_REACH_TABLE_CREATE_QUERY = """
+CREATE TABLE project_auto_events.artisan_reach_date_prediction
+(
+    prediction_id         BIGINT IDENTITY (0,1) NOT NULL,
+    order_id              varchar(256) sortkey,
+    predicted_reach_date  timestamp,
+    predicted_reach_dateL timestamp,
+    latitude              double precision,
+    longitude             double precision,
+    predictedat  timestamp default getdate()
+);
+"""
 WATER_DEPART_CREATE_TABLE_QUERY = """
 CREATE TABLE project_auto_events.water_depart_date_prediction
 (

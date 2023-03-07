@@ -62,13 +62,14 @@ class ReachDataProcessor(DataProcessor):
     unique_fibonacci_numbers = [0, 1, 2, 3, 5, 8, 13, 21]
     returning_columns = ['_id_oid', 'delivery_route_oid', 'courier_courier_oid', 'reach_date',
                          'time', 'distance_bin', 'time_passed_in_bin', 'tbe',
-                         'dbw_reach_client', 'dbw_reach_client_bin', 'lat', 'lon', 'time_zone']
+                         'lat', 'lon', 'time_zone']
 
-    def __init__(self, fibonacci_base, minimum_location_limit, merged_df: pd.DataFrame):
+    def __init__(self, fibonacci_base, minimum_location_limit, merged_df: pd.DataFrame, domain_type: int):
 
         self.minimum_location_limit = minimum_location_limit
         self.merged_df = merged_df
         self.fibonacci_base = fibonacci_base
+        self.domain_type = domain_type
 
     @staticmethod
     def convert_to_seconds(x):
@@ -78,9 +79,15 @@ class ReachDataProcessor(DataProcessor):
             return np.nan
 
     def haversine_apply(self, row):
+        if self.domain_type in (2, 6):
+            source_lon = 'deliveryaddress_location__coordinates_lon'
+            source_lat = 'deliveryaddress_location__coordinates_lat'
+        else:
+            source_lon = 'delivery_address_location__coordinates_lon'
+            source_lat = 'delivery_address_location__coordinates_lat'
         dist = self.haversine(row['lon'], row['lat'],
-                              row['delivery_address_location__coordinates_lon'],
-                              row['delivery_address_location__coordinates_lat'])
+                              row[source_lon],
+                              row[source_lat])
         return round(dist * 1000)
 
     def find_distance_bin(self, distance):
@@ -110,11 +117,6 @@ class ReachDataProcessor(DataProcessor):
             'is_distance_bin_changed'].cumsum()
         m_df['time_passed_in_bin'] = m_df.sort_values(['route_id', 'distance_bin_group', 'time']).groupby(
             ['route_id', 'distance_bin_group'])['tbe'].cumsum()
-        m_df['dbw_reach_client'] = m_df.apply(lambda x: self.haversine(x['lon'], x['lat'],
-                                                                       x['reach_location__coordinates_lon'],
-                                                                       x['reach_location__coordinates_lat']) * 1000,
-                                              axis=1)
-        m_df['dbw_reach_client_bin'] = m_df['dbw_reach_client'].apply(self.find_distance_bin)
         if include_all:
             return m_df
         else:
