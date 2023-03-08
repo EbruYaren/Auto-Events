@@ -153,20 +153,17 @@ def run(start_date: str, end_date: str, domains: list, courier_ids: list):
         create_auto_table(config.ARTISAN_REACH_TABLE_CREATE_QUERY,
                           config.ARTISAN_REACH_TO_CLIENT_TABLE_NAME, 'Reach to client for Artisan')
 
-    thread1 = Thread(target=fetch_orders_and_process, args=[start_date, end_date, start_time, courier_ids, domains, 1])
-    thread2 = Thread(target=fetch_orders_and_process, args=[start_date, end_date, start_time, courier_ids, domains, 2])
-    thread4 = Thread(target=fetch_orders_and_process, args=[start_date, end_date, start_time, courier_ids, domains, 4])
-    thread6 = Thread(target=fetch_orders_and_process, args=[start_date, end_date, start_time, courier_ids, domains, 6])
+    threads = {}
+    domain_types = [1, 2, 4, 6]
+    for domain_type in domain_types:
+        threads[domain_type] = Thread(target=fetch_orders_and_process,
+                                      args=[start_date, end_date, start_time, courier_ids, domains, domain_type])
 
-    thread1.start()
-    thread2.start()
-    thread4.start()
-    thread6.start()
+    for domain_type in domain_types:
+        threads[domain_type].start()
 
-    thread1.join()
-    thread2.join()
-    thread4.join()
-    thread6.join()
+    for domain_type in domain_types:
+        threads[domain_type].join()
 
 
 def fetch_orders_and_process(start_date, end_date, start_time, courier_ids: [], domains, domain_type: int):
