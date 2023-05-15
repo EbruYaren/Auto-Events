@@ -69,7 +69,7 @@ def main():
 
     print('NOW HOUR: ', datetime.now().hour)
 
-    if datetime.now().hour == 4:
+    if datetime.now().hour == 12:
         # datetime.now().replace(minute=0, second=0, microsecond=0) - timedelta(hours=3)
         end = datetime.now().replace(minute=0, second=0, microsecond=0) - timedelta(hours=3)
         # end - timedelta(hours=26)
