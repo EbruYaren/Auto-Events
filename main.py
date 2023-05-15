@@ -71,9 +71,9 @@ def main():
 
     if datetime.now().hour == 12:
         # datetime.now().replace(minute=0, second=0, microsecond=0) - timedelta(hours=3)
-        end = datetime.now().replace(minute=0, second=0, microsecond=0) - timedelta(hours=3)
+        end = start_date
         # end - timedelta(hours=26)
-        start = end - timedelta(hours=26)
+        start = end_date
         params = {
             'start': start,
             'end': end
