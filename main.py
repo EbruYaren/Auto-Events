@@ -68,7 +68,7 @@ def main():
 
     print('NOW HOUR: ', datetime.now().hour)
 
-    if datetime.utcnow().hour == 13:
+    if datetime.utcnow().hour == 14:
         # datetime.now().replace(minute=0, second=0, microsecond=0) - timedelta(hours=3)
         end = end_date
         # end - timedelta(hours=26)
