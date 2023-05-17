@@ -36,7 +36,7 @@ def main():
     print("Start date before hourly loop:", start_date)
     print("End date before hourly loop:", end_date)
 
-    for pair in get_date_pairs(start_date, end_date):
+    """for pair in get_date_pairs(start_date, end_date):
         start, end = pair
         run(start, end, domains, courier_ids)
 
@@ -62,14 +62,13 @@ def main():
         remove_duplicates(connection, config.WATER_DEPART_FROM_CLIENT_TABLE_NAME, 'prediction_id', ['order_id'],
                           config.SCHEMA_NAME)
         remove_duplicates(connection, config.WATER_DELIVERY_TABLE_NAME, 'prediction_id', ['order_id'],
-                          config.SCHEMA_NAME)
-
+                          config.SCHEMA_NAME)"""
 
     print("Duplicates are removed")
 
     print('NOW HOUR: ', datetime.now().hour)
 
-    if datetime.now().hour == 12:
+    if datetime.utcnow().hour == 12:
         # datetime.now().replace(minute=0, second=0, microsecond=0) - timedelta(hours=3)
         end = start_date
         # end - timedelta(hours=26)
