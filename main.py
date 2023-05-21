@@ -38,6 +38,7 @@ def main():
 
     df = pd.read_csv('./depart_update.csv')
     df = df.drop(columns=['Unnamed: 0'])
+    df = df[df.time.notna()]
 
     for index, row in df.iterrows():
         params = {
