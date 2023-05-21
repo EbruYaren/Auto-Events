@@ -1,3 +1,5 @@
+from datetime import timedelta
+
 import pandas as pd
 import sqlalchemy
 
@@ -153,12 +155,17 @@ WHERE max_deliver_date between '{start_date}' AND  '{end_date}';
             in_clause = self._create_in_clause(self.__courier_ids)
             courier_filter = 'AND courier_courier_oid IN {}'.format(in_clause)
 
+        start = pd.to_datetime(self.__start_date) - timedelta(hours=1)
+        end = pd.to_datetime(self.__end_date) + timedelta(hours=1)
         if self.__domain_type in (1, 3):
             return self.QUERY_TEMPLATE.format(start_date=self.__start_date,
                                               end_date=self.__end_date,
                                               courier_filter=courier_filter,
                                               prediction_table=prediction_table,
-                                              null_filter=null_filter)
+                                              null_filter=null_filter,
+                                              start=start,
+                                              end=end)
+
         elif self.__domain_type == 2:
             return self.QUERY_TEMPLATE_FOOD.format(start_date=self.__start_date,
                                                    end_date=self.__end_date,
