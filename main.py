@@ -13,6 +13,7 @@ from src.data_access import data_from_sql_file
 from datetime import datetime, timedelta
 from src.config import chunk_size
 from threading import Thread
+import numpy as np
 
 
 @timer()
@@ -36,22 +37,22 @@ def main():
     print("Start date before hourly loop:", start_date)
     print("End date before hourly loop:", end_date)
 
-    df = pd.read_csv('./depart_update.csv')
+    """df = pd.read_csv('./depart_update.csv')
     df = df.drop(columns=['Unnamed: 0'])
-    df = df[df.time.notna()]
+    df = df[df.time.isna()]
 
     for index, row in df.iterrows():
         params = {
-            'predicted_depart_date': row['time'],
-            'predicted_depart_datel': row['time_l'],
-            'latitude': row['lat'],
-            'longitude': row['lon'],
+            'predicted_depart_date': None if (np.isnan(row['time']) == True) else row['time'],
+            'predicted_depart_datel': None if (np.isnan(row['time_l']) == True) else row['time_'],
+            'latitude': None if (np.isnan(row['lat']) == True) else row['lat'],
+            'longitude': None if (np.isnan(row['lon']) == True) else row['lon'],
             'order_id': row['_id_oid']
         }
         data_from_sql_file('./sql/depart_update.sql', **params)
-    print('Copy done for batched orders. ')
+    print('Copy done for batched orders. ')"""
 
-    """for pair in get_date_pairs(start_date, end_date):
+    for pair in get_date_pairs(start_date, end_date):
         start, end = pair
         run(start, end, domains, courier_ids)
 
@@ -77,7 +78,7 @@ def main():
         remove_duplicates(connection, config.WATER_DEPART_FROM_CLIENT_TABLE_NAME, 'prediction_id', ['order_id'],
                           config.SCHEMA_NAME)
         remove_duplicates(connection, config.WATER_DELIVERY_TABLE_NAME, 'prediction_id', ['order_id'],
-                          config.SCHEMA_NAME)"""
+                          config.SCHEMA_NAME)
 
     print("Duplicates are removed")
 

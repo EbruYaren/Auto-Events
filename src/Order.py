@@ -3,12 +3,13 @@ import sqlalchemy
 
 
 class Order:
-    QUERY_TEMPLATE = """SELECT delivery_route_oid, _id_oid, courier_courier_oid,
+    QUERY_TEMPLATE = """with orders as
+    (
+        SELECT delivery_route_oid, _id_oid, courier_courier_oid,
            checkoutdatel,
            deliver_date ,
            reach_date,
            max(onway_date) over (partition by delivery_job_oid) as onway_date,
-           -- client_location__coordinates_lon, client_location__coordinates_lat,
            deliver_location__coordinates_lon, deliver_location__coordinates_lat,
            reach_location__coordinates_lon, reach_location__coordinates_lat,
            delivery_address_location__coordinates_lon, delivery_address_location__coordinates_lat,
@@ -16,16 +17,20 @@ class Order:
             first_value(handover_date) over (partition by delivery_job_oid order by delivery_batch_index desc rows unbounded preceding ) handover_date,
            delivery_job_oid,
            delivery_batch_index,
-           z.time_zone
+           z.time_zone,
+           max(deliver_date) over (partition by delivery_job_oid) as max_deliver_date
         FROM etl_market_order.marketorders o
-        LEFT JOIN project_auto_events.{prediction_table} rdp ON rdp.order_id = o._id_oid
         LEFT JOIN market_analytics.country_time_zones AS z ON o.country_oid = z.country_id
         WHERE status in (900, 1000)
         {null_filter}
-        AND deliver_date BETWEEN  '{start_date}' AND  '{end_date}' 
+        AND deliver_date BETWEEN '{start}' AND  '{end}'
         AND domaintype in (1,3)
         {courier_filter}
         ORDER BY courier_courier_oid, deliver_date
+)
+select *
+FROM orders
+WHERE max_deliver_date between '{start_date}' AND  '{end_date}';
     """
 
     # getting food orders
