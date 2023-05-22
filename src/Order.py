@@ -22,6 +22,7 @@ class Order:
            z.time_zone,
            max(deliver_date) over (partition by delivery_job_oid) as max_deliver_date
         FROM etl_market_order.marketorders o
+        LEFT JOIN project_auto_events.{prediction_table} rdp ON rdp.order_id = o._id_oid
         LEFT JOIN market_analytics.country_time_zones AS z ON o.country_oid = z.country_id
         WHERE status in (900, 1000)
         {null_filter}
