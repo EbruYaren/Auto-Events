@@ -37,7 +37,7 @@ def main():
     print("Start date before hourly loop:", start_date)
     print("End date before hourly loop:", end_date)
 
-    """for pair in get_date_pairs(start_date, end_date):
+    for pair in get_date_pairs(start_date, end_date):
         start, end = pair
         run(start, end, domains, courier_ids)
 
@@ -67,11 +67,11 @@ def main():
 
     print("Duplicates are removed")
 
-    print('NOW HOUR: ', datetime.now().hour)"""
+    print('NOW HOUR: ', datetime.now().hour)
 
-    if datetime.utcnow().hour == 11:
-        start = pd.to_datetime(start_date) # datetime.now().replace(minute=0, second=0, microsecond=0) - timedelta(hours=1)
-        end = pd.to_datetime(end_date) # start + timedelta(hours=26)
+    if datetime.utcnow().hour == 1:
+        start = datetime.now().replace(minute=0, second=0, microsecond=0) - timedelta(hours=24)
+        end = start + timedelta(hours=26)
 
         params = {
             'start': start,
