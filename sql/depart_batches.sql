@@ -18,7 +18,7 @@ select m._id_oid, max_predicted_depart_date as predicted_depart_date,
        djo.longitude, djo.latitude
 from etl_market_order.marketorders m
  join (select *
-      from #delivery_job_oidss
+      from #delivery_job_oids
       where max_index > 1 and max_predicted_depart_date is not null
         and predicted_depart_date <> max_predicted_depart_date) djo on m._id_oid = djo._id_oid;
 
