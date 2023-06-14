@@ -22,7 +22,10 @@ class Writer:
         self.__file_prefix = f'{self.__run_start}-{self.__schema_name}-{self.__table_name}'
 
     def __prepare_columns(self):
-        self.__predictions = self.__predictions[['_id_oid', 'time', 'time_l', 'lat', 'lon']]
+        if 'domain_type' in self.__predictions.columns:
+            self.__predictions = self.__predictions[['_id_oid', 'domain_type', 'time', 'time_l', 'lat', 'lon']]
+        else:
+            self.__predictions = self.__predictions[['_id_oid', 'time', 'time_l', 'lat', 'lon']]
         self.__predictions.columns = self.__table_columns
 
     def __to_s3(self):

@@ -7,7 +7,7 @@ import sqlalchemy
 class Order:
     QUERY_TEMPLATE = """with orders as
     (
-        SELECT delivery_route_oid, _id_oid, courier_courier_oid,
+        SELECT delivery_route_oid, _id_oid, courier_courier_oid,  courier_fleetvehicle_oid,
            checkoutdatel,
            deliver_date ,
            reach_date,
@@ -30,9 +30,23 @@ class Order:
         AND domaintype in (1,3)
         {courier_filter}
         ORDER BY courier_courier_oid, deliver_date
-)
-select *
-FROM orders
+), 
+fleet_types as (
+         select vh._id_oid as vehicle_id,
+                CASE
+                    WHEN type = 100 THEN 3
+                    WHEN type = 200 THEN 2
+                    WHEN type = 300 THEN 7
+                    WHEN type = 400 THEN 6
+                    WHEN type = 500 THEN 10
+                    WHEN type = 600 THEN 11
+                    END    as vehicle_type
+         from etl_market_fleet.vehicles as vh
+                  left join etl_market_fleet.vehicleconstraints as v
+                            on vh.constraint_oid = v._id_oid)
+select o.*, ft.vehicle_type
+FROM orders o 
+left join fleet_types ft on ft.vehicle_id = o.courier_fleetvehicle_oid
 WHERE max_deliver_date between '{start_date}' AND  '{end_date}';
     """
 
