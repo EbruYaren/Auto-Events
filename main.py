@@ -411,7 +411,7 @@ def depart_from_warehouse_new_model(processed_data: pd.DataFrame, chunk_df:pd.Da
         order_ids = pd.DataFrame(chunk_df['_id_oid'], columns=['_id_oid'])
         predictions = order_ids.merge(new_model_predictions, on='_id_oid', how='left')
         predictions['domain_type'] = domain_type
-        predictions = predictions[['_id_oid', 'domain-type', 'time', 'time_l', 'lat', 'lon']]
+        predictions = predictions[['_id_oid', 'domain_type', 'time', 'time_l', 'lat', 'lon']]
         print('New Model Depart data predicted for: ', domain_type.__str__() + '_' + str(domain_type))
 
         TABLE_NAME = config.DEPART_FROM_WAREHOUSE_NEW_MODEL_TABLE_NAME
