@@ -37,9 +37,13 @@ def main():
     print("Start date before hourly loop:", start_date)
     print("End date before hourly loop:", end_date)
 
-    for pair in get_date_pairs(start_date, end_date):
-        start, end = pair
-        run(start, end, domains, courier_ids)
+    diff = round((((pd.to_datetime(end_date) - pd.to_datetime(start_date)).total_seconds()) / 60), 2)
+    if diff <= 60.0:
+        run(start_date, end_date, domains, courier_ids)
+    else:
+        for pair in get_date_pairs(start_date, end_date):
+            start, end = pair
+            run(start, end, domains, courier_ids)
 
     with WRITE_ENGINE.begin() as connection:
         remove_duplicates(connection, config.REACH_TABLE_NAME, 'prediction_id', ['order_id'], config.SCHEMA_NAME)
