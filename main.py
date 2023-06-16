@@ -398,7 +398,7 @@ def depart_from_warehouse_main(processed_data:pd.DataFrame, chunk_df:pd.DataFram
 
         if last_chunk:
             writer.copy_to_redshift()
-        print('Depart data predictions written!')
+            print('Depart data predictions written!')
 
 
 def depart_from_warehouse_new_model(processed_data: pd.DataFrame, chunk_df:pd.DataFrame, domain_type: int,
