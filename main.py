@@ -403,26 +403,27 @@ def depart_from_warehouse_main(processed_data:pd.DataFrame, chunk_df:pd.DataFram
 
 def depart_from_warehouse_new_model(processed_data: pd.DataFrame, chunk_df:pd.DataFrame, domain_type: int,
                                     last_chunk: bool, start_time: str):
-    processed_data['is_car'] = processed_data.apply(lambda x: 1 if x['vehicle_type'] == 6 else 0, axis=1)
-    new_model_predictor = NewDepartModelPredictor(processed_data, config.MAX_DISTANCE_FOR_DEPART_PREDICTION,
-                                                  chunk_df, domain_type)
-    new_model_predictions = new_model_predictor.predict()
-    if new_model_predictions is not None and len(new_model_predictions) > 0:
-        order_ids = pd.DataFrame(chunk_df['_id_oid'], columns=['_id_oid'])
-        predictions = order_ids.merge(new_model_predictions, on='_id_oid', how='left')
-        predictions['domain_type'] = domain_type
-        predictions = predictions[['_id_oid', 'domain_type', 'time', 'time_l', 'lat', 'lon']]
-        print('New Model Depart data predicted for: ', domain_type.__str__() + '_' + str(domain_type))
+    if len(processed_data):
+        processed_data['is_car'] = processed_data.apply(lambda x: 1 if x['vehicle_type'] == 6 else 0, axis=1)
+        new_model_predictor = NewDepartModelPredictor(processed_data, config.MAX_DISTANCE_FOR_DEPART_PREDICTION,
+                                                      chunk_df, domain_type)
+        new_model_predictions = new_model_predictor.predict()
+        if new_model_predictions is not None and len(new_model_predictions) > 0:
+            order_ids = pd.DataFrame(chunk_df['_id_oid'], columns=['_id_oid'])
+            predictions = order_ids.merge(new_model_predictions, on='_id_oid', how='left')
+            predictions['domain_type'] = domain_type
+            predictions = predictions[['_id_oid', 'domain_type', 'time', 'time_l', 'lat', 'lon']]
+            print('New Model Depart data predicted for: ', domain_type.__str__() + '_' + str(domain_type))
 
-        TABLE_NAME = config.DEPART_FROM_WAREHOUSE_NEW_MODEL_TABLE_NAME
-        TABLE_COLUMNS = config.DEPART_FROM_WAREHOUSE_NEW_MODEL_TABLE_COLUMNS
+            TABLE_NAME = config.DEPART_FROM_WAREHOUSE_NEW_MODEL_TABLE_NAME
+            TABLE_COLUMNS = config.DEPART_FROM_WAREHOUSE_NEW_MODEL_TABLE_COLUMNS
 
-        writer = Writer(predictions, WRITE_ENGINE, TABLE_NAME, config.SCHEMA_NAME, TABLE_COLUMNS, start_time)
-        writer.write()
+            writer = Writer(predictions, WRITE_ENGINE, TABLE_NAME, config.SCHEMA_NAME, TABLE_COLUMNS, start_time)
+            writer.write()
 
-        if last_chunk:
-            writer.copy_to_redshift()
-    print('Depart data new model predictions written!')
+            if last_chunk:
+                writer.copy_to_redshift()
+                print('Depart data new model predictions written!')
 
 
 def depart_from_client_main(chunk_df: pd.DataFrame, routes_df: pd.DataFrame, reach_predictions_df: pd.DataFrame,

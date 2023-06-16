@@ -31,6 +31,7 @@ class Writer:
     def __to_s3(self):
         filepath = '/tmp/' + self.__filename
         s3_file_name = 'auto-events/' + self.__filename
+        print('File Name: ', s3_file_name)
         s3_client = boto3.client('s3', region_name=REDSHIFT_S3_REGION)
         s3_client.upload_file(filepath, Bucket=REDSHIFT_S3_BUCKET, Key=s3_file_name)
 
