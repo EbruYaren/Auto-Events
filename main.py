@@ -362,6 +362,7 @@ def depart_from_warehouse_main(processed_data:pd.DataFrame, chunk_df:pd.DataFram
     if predictions is not None and len(predictions) > 0:
         order_ids = pd.DataFrame(chunk_df['_id_oid'], columns=['_id_oid'])
         predictions = order_ids.merge(predictions, on='_id_oid', how='left')
+        print('Columns: ', predictions.columns)
         print('Depart data predicted for: ', domain_type.__str__() + '_' + domain)
         # 'depart_from_merchant', 'depart_from_courier_warehouse'
         if domain_type == 2:
