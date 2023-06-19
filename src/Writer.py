@@ -35,7 +35,6 @@ class Writer:
         s3_client = boto3.client('s3', region_name=REDSHIFT_S3_REGION)
         s3_client.upload_file(filepath, Bucket=REDSHIFT_S3_BUCKET, Key=s3_file_name)
 
-
     def copy_to_redshift(self):
         s3_file_path = 's3://' + REDSHIFT_S3_BUCKET + '/auto-events/' + self.__file_prefix
         with WRITE_ENGINE.begin() as connection:
@@ -45,10 +44,10 @@ class Writer:
                 FROM '{s3_file_path}'
                 iam_role '{REDSHIFT_IAM_ROLE}' delimiter '|' ignoreheader 1;
                 """)
+                connection.commit()
+
 
             except:
-
-                 # Rollback the transaction if an error occurs
                 df = connection.execute('select * from stl_load_errors order by starttime desc;')
                 print(df[['starttime', 'err_reason', 'raw_line']].head())
                 connection.rollback()
@@ -57,8 +56,6 @@ class Writer:
             finally:
                 # Close the session
                 connection.close()
-
-
 
     def write(self):
         self.__prepare_columns()
