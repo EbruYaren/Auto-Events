@@ -54,7 +54,7 @@ class Writer:
 
             finally:
                 # Close the session
-                connection.dispose()
+                WRITE_ENGINE.dispose()
 
     def write(self):
         self.__prepare_columns()
