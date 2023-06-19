@@ -163,14 +163,7 @@ def run(start_date: str, end_date: str, domains: list, courier_ids: list):
     threads = {}
     domain_types = [1, 2, 4, 6]
     for domain_type in domain_types:
-        threads[domain_type] = Thread(target=fetch_orders_and_process,
-                                      args=[start_date, end_date, start_time, courier_ids, domains, domain_type])
-
-    for domain_type in domain_types:
-        threads[domain_type].start()
-
-    for domain_type in domain_types:
-        threads[domain_type].join()
+        fetch_orders_and_process(start_date, end_date, start_time, courier_ids, domains, domain_type)
 
 
 def fetch_orders_and_process(start_date, end_date, start_time, courier_ids: [], domains, domain_type: int):
@@ -347,7 +340,7 @@ def depart_main(chunk_df: pd.DataFrame, domain_type: int, domain: str, merged_df
     print('Depart data processed!')
 
     depart_from_warehouse_main(processed_data, chunk_df, domain_type, domain, last_chunk, start_time)
-    # depart_from_warehouse_new_model(processed_data, chunk_df, domain_type, last_chunk, start_time)
+    depart_from_warehouse_new_model(processed_data, chunk_df, domain_type, last_chunk, start_time)
 
     return chunk_df['delivery_route_oid'].nunique()
 
