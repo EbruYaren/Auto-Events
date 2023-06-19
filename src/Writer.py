@@ -37,24 +37,18 @@ class Writer:
 
     def copy_to_redshift(self):
         s3_file_path = 's3://' + REDSHIFT_S3_BUCKET + '/auto-events/' + self.__file_prefix
-        with WRITE_ENGINE.begin() as connection:
-            try:
-                connection.execute(f"""
-                COPY {self.__schema_name}.{self.__table_name} ({",".join(self.__table_columns)})
-                FROM '{s3_file_path}'
-                iam_role '{REDSHIFT_IAM_ROLE}' delimiter '|' ignoreheader 1;
-                """)
+        conn = WRITE_ENGINE.connect()
+        try:
+            conn.execute(f"""
+                    COPY {self.__schema_name}.{self.__table_name} ({",".join(self.__table_columns)})
+                    FROM '{s3_file_path}'
+                    iam_role '{REDSHIFT_IAM_ROLE}' delimiter '|' ignoreheader 1;
+                    """)
 
 
-            except:
-                df = connection.execute('select * from stl_load_errors order by starttime desc;')
-                print(df[['starttime', 'err_reason', 'raw_line']].head())
-                connection.rollback()
-
-
-            finally:
-                # Close the session
-                WRITE_ENGINE.dispose()
+        finally:
+            # Close the session
+            conn.close()
 
     def write(self):
         self.__prepare_columns()
