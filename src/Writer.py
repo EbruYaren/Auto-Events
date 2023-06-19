@@ -44,7 +44,6 @@ class Writer:
                 FROM '{s3_file_path}'
                 iam_role '{REDSHIFT_IAM_ROLE}' delimiter '|' ignoreheader 1;
                 """)
-                connection.commit()
 
 
             except:
@@ -55,7 +54,7 @@ class Writer:
 
             finally:
                 # Close the session
-                connection.close()
+                connection.dispose()
 
     def write(self):
         self.__prepare_columns()
