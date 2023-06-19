@@ -38,7 +38,7 @@ class Writer:
 
     def copy_to_redshift(self):
         s3_file_path = 's3://' + REDSHIFT_S3_BUCKET + '/auto-events/' + self.__file_prefix
-        with WRITE_ENGINE.cursor() as connection:
+        with WRITE_ENGINE.begin() as connection:
             try:
                 connection.execute(f"""
                 COPY {self.__schema_name}.{self.__table_name} ({",".join(self.__table_columns)})
