@@ -37,12 +37,25 @@ class Writer:
 
     def copy_to_redshift(self):
         s3_file_path = 's3://' + REDSHIFT_S3_BUCKET + '/auto-events/' + self.__file_prefix
-        with WRITE_ENGINE.begin() as connection:
-            connection.execute(f"""
-                    COPY {self.__schema_name}.{self.__table_name} ({",".join(self.__table_columns)})
-                    FROM '{s3_file_path}'
-                    iam_role '{REDSHIFT_IAM_ROLE}' delimiter '|' ignoreheader 1;
-                    """)
+        print()
+        try:
+            with WRITE_ENGINE.begin() as connection:
+                connection.execute(f"""
+                        COPY {self.__schema_name}.{self.__table_name} ({",".join(self.__table_columns)})
+                        FROM '{s3_file_path}'
+                        iam_role '{REDSHIFT_IAM_ROLE}' delimiter '|' ignoreheader 1;
+                        """)
+        except:
+            query = """
+                select le.starttime, d.query, d.line_number, d.colname, d.value,
+            le.raw_line, le.err_reason    
+            from stl_loaderror_detail d, stl_load_errors le
+            where d.query = le.query
+            order by le.starttime desc
+            limit 100
+                """
+            df = pd.read_sql(query, WRITE_ENGINE)
+            print(df)
 
 
     def write(self):
