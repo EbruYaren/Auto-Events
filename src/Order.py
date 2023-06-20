@@ -53,9 +53,10 @@ WHERE max_deliver_date between '{start_date}' AND  '{end_date}';
     # getting food orders
     QUERY_TEMPLATE_FOOD = """with orders as (
 select f.route_oid as delivery_route_oid, f._id_oid, f.courier_oid as courier_courier_oid,
+deliveryaddress_location__coordinates_lat as delivery_address_location__coordinates_lat, 
+deliveryaddress_location__coordinates_lon as delivery_address_location__coordinates_lon, 
                               fleetvehicle_oid,
                                f.checkoutdatel, f.deliverdate as deliver_date, f.reachdate as reach_date, f.handoverdate,
-                               f.deliveryaddress_location__coordinates_lon, f.deliveryaddress_location__coordinates_lat, f.restaurantloc_lon, f.restaurantloc_lat,
                                l.reached_to_restaurant_lat, l.reached_to_restaurant_lon, l.reached_to_restaurant_createdatl, l.reached_to_client_lat,
                                l.reached_to_client_lon, l.reached_to_client_createdatl, 2 as domaintype,
                                'Europe/Istanbul' as time_zone,
@@ -102,9 +103,10 @@ left join fleet_types ft on ft.vehicle_id = o.fleetvehicle_oid;
     # getting artisan orders
     QUERY_TEMPLATE_ARTISAN = """with orders as (
 select f.route_oid as delivery_route_oid, f._id_oid, f.courier_oid as courier_courier_oid,
+deliveryaddress_location__coordinates_lat as delivery_address_location__coordinates_lat, 
+deliveryaddress_location__coordinates_lon as delivery_address_location__coordinates_lon, 
                                     f.fleetvehicle_oid,
                                     f.checkoutdatel, f.deliverdate as deliver_date, f.reachdate as reach_date, f.handoverdate,
-                                    f.deliveryaddress_location__coordinates_lon, f.deliveryaddress_location__coordinates_lat,
                                     f.restaurantloc_lon, f.restaurantloc_lat,
                                     l.reached_to_restaurant_lat, l.reached_to_restaurant_lon, l.reached_to_restaurant_createdatl, l.reached_to_client_lat,
                                     l.reached_to_client_lon, l.reached_to_client_createdatl, 6 as domaintype,

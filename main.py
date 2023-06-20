@@ -234,7 +234,8 @@ def get_routes_and_process(chunk_df, domains, domain_type, start_date, end_date,
                 processed_reach_orders = reach_main(chunk_df, domain_type, merged_df, start_time, last_chunk).get('routes')
                 total_processed_routes_for_reach += processed_reach_orders
                 reach_predictions = reach_main(chunk_df, domain_type, merged_df, start_time, last_chunk).get('preds')
-                orders = chunk_df[['_id_oid', 'deliver_location__coordinates_lon', 'deliver_location__coordinates_lat']]
+                orders = chunk_df[['_id_oid', 'delivery_address_location__coordinates_lon',
+                                   'delivery_address_location__coordinates_lat']]
                 reach_predictions = reach_predictions.merge(orders, left_on="_id_oid", right_on="_id_oid", how="inner")
                 print("Total Processed Routes For Reach : ", total_processed_routes_for_reach)
 
