@@ -210,7 +210,7 @@ def get_routes_and_process(chunk_df, domains, domain_type, start_date, end_date,
         depart_from_client_predictions = []
 
         for event in domains:
-            if event == 'depart':
+            if event == 'depart' or event == 'depart_from_merchant' or event == 'depart_from_courier_warehouse':
                 if domain_type in (2, 6):
                     chunk_df = chunk_df[chunk_df.domaintypes.isin([1, 3])]
                     for domain in ['depart_from_merchant', 'depart_from_courier_warehouse']:
