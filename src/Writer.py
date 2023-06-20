@@ -54,8 +54,8 @@ class Writer:
             order by le.starttime desc
             limit 100
                 """
-            df = pd.read_sql(query, WRITE_ENGINE)
-            print(df)
+            #df = pd.read_sql(query, WRITE_ENGINE)
+            #print(df)
 
 
     def write(self):
