@@ -183,7 +183,7 @@ def fetch_orders_and_process(start_date, end_date, start_time, courier_ids: [], 
             last_chunk = True
         get_routes_and_process(chunk_df, domains, domain_type, start_date, end_date, start_time, last_chunk)
     if orders_len > 0:
-        print('Market Orders fetched!')
+        print('Orders fetched! ', domain_type)
 
 
 def get_routes_and_process(chunk_df, domains, domain_type, start_date, end_date, start_time, last_chunk):
@@ -348,6 +348,7 @@ def reach_to_merchant_main(chunk_df: pd.DataFrame, domain_type, merged_df: pd.Da
 
 def depart_main(chunk_df: pd.DataFrame, domain_type: int, domain: str, merged_df: pd.DataFrame, start_time: str,
                 last_chunk: bool):
+    print('Domain Type: ', domain_type)
     processed_data = DepartDataProcessor(
         minimum_location_limit=config.MINIMUM_LOCATION_LIMIT,
         domain=domain,
