@@ -32,6 +32,7 @@ def main():
         domain = params.domain
         courier_ids = []
 
+    print('domain: ', domain)
     domains = domain.split(',')
     print('domains: ', domains)
 
