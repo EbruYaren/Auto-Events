@@ -218,6 +218,12 @@ def get_routes_and_process(chunk_df, domains, domain_type, start_date, end_date,
                 total_processed_routes_for_depart += (processed_depart_orders or 0)
             print("Total Processed Routes for domain type {} Depart: {}".format(domain_type,
                                                                                 total_processed_routes_for_depart))
+        if 'depart_new' in domains:
+            if domain_type == 1:
+                c = depart_from_warehouse_new_model(chunk_df, domain_type, '', merged_df, start_time, last_chunk)
+                t += (c or 0)
+                print("Total Processed Routes for domain type {} New Depart Model: {}".format(domain_type,
+                                                                                    total_processed_routes_for_depart))
 
         if 'reach' in domains and domain_type not in (2, 6):
             processed_reach_orders = reach_main(chunk_df, domain_type, merged_df, start_time, last_chunk).get('routes')
@@ -332,22 +338,12 @@ def reach_to_merchant_main(chunk_df: pd.DataFrame, domain_type, merged_df: pd.Da
 
 def depart_main(chunk_df: pd.DataFrame, domain_type: int, domain: str, merged_df: pd.DataFrame, start_time: str,
                 last_chunk: bool):
-
     processed_data = DepartDataProcessor(
         minimum_location_limit=config.MINIMUM_LOCATION_LIMIT,
         domain=domain,
         merged_df=merged_df).process()
     print('Depart data processed!')
 
-
-    # depart_from_warehouse_new_model(processed_data, chunk_df, domain_type, last_chunk, start_time)
-    depart_from_warehouse_main(processed_data, chunk_df, domain_type, domain, last_chunk, start_time)
-
-    return chunk_df['delivery_route_oid'].nunique()
-
-
-def depart_from_warehouse_main(processed_data:pd.DataFrame, chunk_df:pd.DataFrame, domain_type: int, domain: str,
-                               last_chunk: bool, start_time: str):
     single_predictor = DepartLogisticReachSinglePredictor(config.DEPART_INTERCEPT, config.DEPART_COEFFICIENTS)
     bulk_predictor = DepartBulkPredictor(processed_data, single_predictor, config.MAX_DISTANCE_FOR_DEPART_PREDICTION,
                                          chunk_df, domain_type)
@@ -390,9 +386,18 @@ def depart_from_warehouse_main(processed_data:pd.DataFrame, chunk_df:pd.DataFram
             writer.copy_to_redshift()
             print('Depart data predictions written!')
 
+    return chunk_df['delivery_route_oid'].nunique()
 
-def depart_from_warehouse_new_model(processed_data: pd.DataFrame, chunk_df:pd.DataFrame, domain_type: int,
-                                    last_chunk: bool, start_time: str):
+
+def depart_from_warehouse_new_model(chunk_df: pd.DataFrame, domain_type: int, domain: str, merged_df: pd.DataFrame,
+                                    start_time: str, last_chunk: bool):
+
+    processed_data = DepartDataProcessor(
+        minimum_location_limit=config.MINIMUM_LOCATION_LIMIT,
+        domain=domain,
+        merged_df=merged_df).process()
+    print('Depart data processed!')
+
     if len(processed_data):
         processed_data['is_car'] = processed_data.apply(lambda x: 1 if x['vehicle_type'] == 6 else 0, axis=1)
         new_model_predictor = NewDepartModelPredictor(processed_data, config.MAX_DISTANCE_FOR_DEPART_PREDICTION,
@@ -414,6 +419,8 @@ def depart_from_warehouse_new_model(processed_data: pd.DataFrame, chunk_df:pd.Da
             if last_chunk:
                 writer.copy_to_redshift()
                 print('Depart data new model predictions written!')
+
+            return chunk_df['delivery_route_oid'].nunique()
 
 
 def depart_from_client_main(chunk_df: pd.DataFrame, routes_df: pd.DataFrame, reach_predictions_df: pd.DataFrame,
