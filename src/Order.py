@@ -109,7 +109,6 @@ deliveryaddress_location__coordinates_lon as delivery_address_location__coordina
 restaurantloc_lon, restaurantloc_lat,
                                     f.fleetvehicle_oid,
                                     f.checkoutdatel, f.deliverdate as deliver_date, f.reachdate as reach_date, f.handoverdate,
-                                    f.restaurantloc_lon, f.restaurantloc_lat,
                                     l.reached_to_restaurant_lat, l.reached_to_restaurant_lon, l.reached_to_restaurant_createdatl, l.reached_to_client_lat,
                                     l.reached_to_client_lon, l.reached_to_client_createdatl, 6 as domaintype,
                                     'Europe/Istanbul' as time_zone,
