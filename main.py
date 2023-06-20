@@ -33,6 +33,7 @@ def main():
         courier_ids = []
 
     domains = domain.split(',')
+    print('domains: ', domains)
 
     print("Start date before hourly loop:", start_date)
     print("End date before hourly loop:", end_date)
