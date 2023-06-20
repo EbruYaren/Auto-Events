@@ -192,7 +192,7 @@ def get_routes_and_process(chunk_df, domains, domain_type, start_date, end_date,
     total_processed_routes_for_depart_from_client = 0
     total_processed_routes_for_reach_to_merchant = 0
     total_processed_orders_for_delivery = 0
-
+    t = 0
     print('in fetch_orders_df. Shape:', chunk_df.shape)
 
     if chunk_df.size > 0:
