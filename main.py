@@ -339,8 +339,9 @@ def depart_main(chunk_df: pd.DataFrame, domain_type: int, domain: str, merged_df
         merged_df=merged_df).process()
     print('Depart data processed!')
 
+
+    depart_from_warehouse_new_model(processed_data, chunk_df, domain_type, last_chunk, start_time)
     depart_from_warehouse_main(processed_data, chunk_df, domain_type, domain, last_chunk, start_time)
-    # depart_from_warehouse_new_model(processed_data, chunk_df, domain_type, last_chunk, start_time)
 
     return chunk_df['delivery_route_oid'].nunique()
 
