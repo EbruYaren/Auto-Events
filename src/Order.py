@@ -143,8 +143,8 @@ WHERE max_deliver_date between '{start_date}' AND  '{end_date}';
     def _query_formatter(self):
         if self.__domains == ['depart_from_client']:
             # run for if no prediction
-            prediction_table = 'depart_from_client_date_prediction'
-            null_filter = "AND rdp.predicted_depart_from_client_date isnull"
+            prediction_table = 'depart_date_prediction'
+            null_filter = "AND rdp.predicted_depart_date isnull"
         else:
             # run for first time rows
             prediction_table = 'depart_from_client_date_prediction'
