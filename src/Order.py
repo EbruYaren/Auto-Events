@@ -7,7 +7,7 @@ import sqlalchemy
 class Order:
     QUERY_TEMPLATE = """with orders as
     (
-        SELECT delivery_route_oid, _id_oid, courier_courier_oid,  courier_fleetvehicle_oid,
+        SELECT delivery_route_oid, _id_oid, courier_courier_oid,
            checkoutdatel,
            deliver_date ,
            reach_date,
@@ -30,34 +30,16 @@ class Order:
         AND domaintype in (1,3)
         {courier_filter}
         ORDER BY courier_courier_oid, deliver_date
-), 
-fleet_types as (
-         select vh._id_oid as vehicle_id,
-                CASE
-                    WHEN type = 100 THEN 3
-                    WHEN type = 200 THEN 2
-                    WHEN type = 300 THEN 7
-                    WHEN type = 400 THEN 6
-                    WHEN type = 500 THEN 10
-                    WHEN type = 600 THEN 11
-                    END    as vehicle_type
-         from etl_market_fleet.vehicles as vh
-                  left join etl_market_fleet.vehicleconstraints as v
-                            on vh.constraint_oid = v._id_oid)
-select o.*, ft.vehicle_type
-FROM orders o 
-left join fleet_types ft on ft.vehicle_id = o.courier_fleetvehicle_oid
+)
+select *
+FROM orders
 WHERE max_deliver_date between '{start_date}' AND  '{end_date}';
     """
 
     # getting food orders
-    QUERY_TEMPLATE_FOOD = """with orders as (
-select f.route_oid as delivery_route_oid, f._id_oid, f.courier_oid as courier_courier_oid,
-deliveryaddress_location__coordinates_lat as delivery_address_location__coordinates_lat, 
-deliveryaddress_location__coordinates_lon as delivery_address_location__coordinates_lon, 
-restaurantloc_lon, restaurantloc_lat,
-                              fleetvehicle_oid,
-                               f.checkoutdatel, f.deliverdate as deliver_date, f.reachdate as reach_date, f.handoverdate,
+    QUERY_TEMPLATE_FOOD = """select f.route_oid as delivery_route_oid, f._id_oid, f.courier_oid as courier_courier_oid, 
+                               f.checkoutdatel, f.deliverdate as deliver_date, f.reachdate as reach_date, f.handoverdate, 
+                               f.deliveryaddress_location__coordinates_lon, f.deliveryaddress_location__coordinates_lat, f.restaurantloc_lon, f.restaurantloc_lat,
                                l.reached_to_restaurant_lat, l.reached_to_restaurant_lon, l.reached_to_restaurant_createdatl, l.reached_to_client_lat,
                                l.reached_to_client_lon, l.reached_to_client_createdatl, 2 as domaintype,
                                'Europe/Istanbul' as time_zone,
@@ -80,35 +62,16 @@ restaurantloc_lon, restaurantloc_lat,
                         LEFT JOIN etl_getir.couriers c ON f.courier_oid = c._id_oid
                         LEFT JOIN market_analytics.warehouse_locations wl ON c.warehouse_oid = wl.warehouse
                                 WHERE f.status in (900, 1000)
-                                AND f.deliverytype = 1
+                                AND f.deliverytype = 1 
                                 AND (rdp.order_id is null OR rdp.predicted_reach_date is null)
                                 AND f.deliverdate BETWEEN  '{start_date}' AND  '{end_date}'
-                                 {courier_filter}),
-     fleet_types as (
-         select vh._id_oid as vehicle_id,
-                CASE
-                    WHEN type = 100 THEN 3
-                    WHEN type = 200 THEN 2
-                    WHEN type = 300 THEN 7
-                    WHEN type = 400 THEN 6
-                    WHEN type = 500 THEN 10
-                    WHEN type = 600 THEN 11
-                    END    as vehicle_type
-         from etl_market_fleet.vehicles as vh
-                  left join etl_market_fleet.vehicleconstraints as v
-                            on vh.constraint_oid = v._id_oid)
-select o.*, ft.vehicle_type
-FROM orders o
-left join fleet_types ft on ft.vehicle_id = o.fleetvehicle_oid;
+                                 {courier_filter}
                 """
     # getting artisan orders
-    QUERY_TEMPLATE_ARTISAN = """with orders as (
-select f.route_oid as delivery_route_oid, f._id_oid, f.courier_oid as courier_courier_oid,
-deliveryaddress_location__coordinates_lat as delivery_address_location__coordinates_lat, 
-deliveryaddress_location__coordinates_lon as delivery_address_location__coordinates_lon, 
-restaurantloc_lon, restaurantloc_lat,
-                                    f.fleetvehicle_oid,
+    QUERY_TEMPLATE_ARTISAN = """select f.route_oid as delivery_route_oid, f._id_oid, f.courier_oid as courier_courier_oid,
                                     f.checkoutdatel, f.deliverdate as deliver_date, f.reachdate as reach_date, f.handoverdate,
+                                    f.deliveryaddress_location__coordinates_lon, f.deliveryaddress_location__coordinates_lat,
+                                    f.restaurantloc_lon, f.restaurantloc_lat,
                                     l.reached_to_restaurant_lat, l.reached_to_restaurant_lon, l.reached_to_restaurant_createdatl, l.reached_to_client_lat,
                                     l.reached_to_client_lon, l.reached_to_client_createdatl, 6 as domaintype,
                                     'Europe/Istanbul' as time_zone,
@@ -134,27 +97,10 @@ restaurantloc_lon, restaurantloc_lat,
                                     AND (rdp.order_id is null OR rdp.predicted_reach_date is null)
                                     AND f.deliverytype = 1
                                     AND f.deliverdate BETWEEN  '{start_date}' AND  '{end_date}'
-                                             {courier_filter}),
-     fleet_types as (
-         select vh._id_oid as vehicle_id,
-                CASE
-                    WHEN type = 100 THEN 3
-                    WHEN type = 200 THEN 2
-                    WHEN type = 300 THEN 7
-                    WHEN type = 400 THEN 6
-                    WHEN type = 500 THEN 10
-                    WHEN type = 600 THEN 11
-                    END    as vehicle_type
-         from etl_market_fleet.vehicles as vh
-                  left join etl_market_fleet.vehicleconstraints as v
-                            on vh.constraint_oid = v._id_oid)
-select o.*, ft.vehicle_type
-FROM orders o 
-left join fleet_types ft on ft.vehicle_id = o.fleetvehicle_oid
+                                             {courier_filter}
                 """
 
-    QUERY_TEMPLATE_WATER = """with orders as (
-SELECT delivery_route_oid, _id_oid, courier_courier_oid,
+    QUERY_TEMPLATE_WATER = """SELECT delivery_route_oid, _id_oid, courier_courier_oid,
            checkoutdatel,
            deliver_date ,
            reach_date,
@@ -165,33 +111,16 @@ SELECT delivery_route_oid, _id_oid, courier_courier_oid,
            delivery_address_location__coordinates_lon, delivery_address_location__coordinates_lat,
            warehouse_location__coordinates_lon, warehouse_location__coordinates_lat,
            handover_date,
-           z.time_zone,
-           courier_fleetvehicle_oid
+           z.time_zone
         FROM etl_market_order.marketorders o
         LEFT JOIN project_auto_events.{prediction_table} rdp ON rdp.order_id = o._id_oid
         LEFT JOIN market_analytics.country_time_zones AS z ON o.country_oid = z.country_id
         WHERE status in (900, 1000)
         {null_filter}
-        AND deliver_date BETWEEN  '{start_date}' AND  '{end_date}'
+        AND deliver_date BETWEEN  '{start_date}' AND  '{end_date}' 
         AND domaintype in (4)
         {courier_filter}
-        ORDER BY courier_courier_oid, deliver_date),
-     fleet_types as (
-         select vh._id_oid as vehicle_id,
-                CASE
-                    WHEN type = 100 THEN 3
-                    WHEN type = 200 THEN 2
-                    WHEN type = 300 THEN 7
-                    WHEN type = 400 THEN 6
-                    WHEN type = 500 THEN 10
-                    WHEN type = 600 THEN 11
-                    END    as vehicle_type
-         from etl_market_fleet.vehicles as vh
-                  left join etl_market_fleet.vehicleconstraints as v
-                            on vh.constraint_oid = v._id_oid)
-select o.*, ft.vehicle_type
-FROM orders o
-left join fleet_types ft on ft.vehicle_id = o.courier_fleetvehicle_oid"""
+        ORDER BY courier_courier_oid, deliver_date"""
 
     def __init__(self, start_date: str, end_date: str, etl_engine: sqlalchemy.engine.base.Engine, courier_ids=[],
                  chunk_size=1000, domains=None, domain_type=int):

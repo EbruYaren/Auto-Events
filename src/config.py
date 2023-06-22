@@ -3,7 +3,6 @@ from datetime import timedelta
 TEST = False
 REACH_CREATE_TABLE = False
 DEPART_CREATE_TABLE = False
-DEPART_FROM_WAREHOUSE_NEW_MODEL_TABLE = False
 DEPART_FROM_CLIENT_CREATE_TABLE = False
 REACH_TO_SHOP_TABLE = False
 REACH_TO_RESTAURANT_TABLE = False
@@ -67,13 +66,6 @@ DEPART_TABLE_COLUMNS = ['order_id',
                      'predicted_depart_date',
                      'predicted_depart_dateL',
                      'latitude', 'longitude']
-
-
-DEPART_FROM_WAREHOUSE_NEW_MODEL_TABLE_NAME = "depart_date_prediction_new_model"
-DEPART_FROM_WAREHOUSE_NEW_MODEL_TABLE_COLUMNS = ['order_id', 'domain_type',
-                                                 'predicted_depart_date',
-                                                 'predicted_depart_dateL',
-                                                 'latitude', 'longitude']
 
 FOOD_DEPART_TABLE_NAME = "food_depart_date_prediction"
 FOOD_DEPART_TABLE_COLUMNS = ['order_id',
@@ -206,21 +198,6 @@ CREATE TABLE project_auto_events.depart_date_prediction
     predictedat  timestamp default getdate()
 );
 """
-
-DEPART_FROM_WAREHOUSE_NEW_MODEL_TABLE_QUERY = """
-CREATE TABLE project_auto_events.depart_date_prediction_new_model
-(
-    prediction_id         BIGINT IDENTITY (0,1) NOT NULL,
-    order_id              varchar(256) sortkey,
-    domain_type           int,
-    predicted_depart_date  timestamp,
-    predicted_depart_dateL timestamp,
-    latitude              double precision,
-    longitude             double precision,
-    predictedat  timestamp default getdate()
-);
-"""
-
 
 FOOD_DEPART_CREATE_TABLE_QUERY = """
 CREATE TABLE project_auto_events.food_depart_date_prediction
@@ -379,12 +356,11 @@ CREATE TABLE if not exists {schema}.delivery_date_prediction
 
 RUN_INTERVAL = timedelta(hours=1, minutes=30)
 
-DOMAIN_LIST = ['depart', 'depart_new', 'reach', 'depart,reach', 'depart_from_client', 'depart,reach,depart_from_client',
+DOMAIN_LIST = ['depart', 'reach', 'depart,reach', 'depart_from_client', 'depart,reach,depart_from_client',
                'reach_to_merchant', 'depart_from_merchant', 'deliver', 'depart_from_courier_warehouse',
                'depart,reach,depart_from_client,reach_to_merchant',
-               'depart,depart_new',
-               'depart,depart_new,reach,depart_from_client,reach_to_merchant,deliver,depart_from_merchant,depart_from_courier_warehouse']
-DEFAULT_DOMAIN = 'depart,depart_new,reach,depart_from_client,reach_to_merchant,deliver,depart_from_merchant,depart_from_courier_warehouse'
+               'depart,reach,depart_from_client,reach_to_merchant,deliver,depart_from_merchant,depart_from_courier_warehouse']
+DEFAULT_DOMAIN = 'depart,reach,depart_from_client,reach_to_merchant,deliver,depart_from_merchant,depart_from_courier_warehouse'
 
 DEFAULT_TYPE = 'HOURLY'
 

@@ -32,20 +32,14 @@ def main():
         domain = params.domain
         courier_ids = []
 
-    print('domain: ', domain)
     domains = domain.split(',')
-    print('domains: ', domains)
 
     print("Start date before hourly loop:", start_date)
     print("End date before hourly loop:", end_date)
 
-    diff = round((((pd.to_datetime(end_date) - pd.to_datetime(start_date)).total_seconds()) / 60), 2)
-    if diff <= 60.0:
-        run(start_date, end_date, domains, courier_ids)
-    else:
-        for pair in get_date_pairs(start_date, end_date):
-            start, end = pair
-            run(start, end, domains, courier_ids)
+    for pair in get_date_pairs(start_date, end_date):
+        start, end = pair
+        run(start, end, domains, courier_ids)
 
     with WRITE_ENGINE.begin() as connection:
         remove_duplicates(connection, config.REACH_TABLE_NAME, 'prediction_id', ['order_id'], config.SCHEMA_NAME)
@@ -158,14 +152,17 @@ def run(start_date: str, end_date: str, domains: list, courier_ids: list):
         create_auto_table(config.ARTISAN_REACH_TABLE_CREATE_QUERY,
                           config.ARTISAN_REACH_TO_CLIENT_TABLE_NAME, 'Reach to client for Artisan')
 
-    if config.DEPART_FROM_WAREHOUSE_NEW_MODEL_TABLE:
-        create_auto_table(config.DEPART_FROM_WAREHOUSE_NEW_MODEL_TABLE_QUERY,
-                          config.DEPART_FROM_WAREHOUSE_NEW_MODEL_TABLE_NAME, 'New Depart from Warehouse Model Table')
-
     threads = {}
     domain_types = [1, 2, 4, 6]
     for domain_type in domain_types:
-        fetch_orders_and_process(start_date, end_date, start_time, courier_ids, domains, domain_type)
+        threads[domain_type] = Thread(target=fetch_orders_and_process,
+                                      args=[start_date, end_date, start_time, courier_ids, domains, domain_type])
+
+    for domain_type in domain_types:
+        threads[domain_type].start()
+
+    for domain_type in domain_types:
+        threads[domain_type].join()
 
 
 def fetch_orders_and_process(start_date, end_date, start_time, courier_ids: [], domains, domain_type: int):
@@ -183,7 +180,7 @@ def fetch_orders_and_process(start_date, end_date, start_time, courier_ids: [], 
             last_chunk = True
         get_routes_and_process(chunk_df, domains, domain_type, start_date, end_date, start_time, last_chunk)
     if orders_len > 0:
-        print('Orders fetched! ', domain_type)
+        print('Market Orders fetched!')
 
 
 def get_routes_and_process(chunk_df, domains, domain_type, start_date, end_date, start_time, last_chunk):
@@ -192,7 +189,7 @@ def get_routes_and_process(chunk_df, domains, domain_type, start_date, end_date,
     total_processed_routes_for_depart_from_client = 0
     total_processed_routes_for_reach_to_merchant = 0
     total_processed_orders_for_delivery = 0
-    t = 0
+
     print('in fetch_orders_df. Shape:', chunk_df.shape)
 
     if chunk_df.size > 0:
@@ -209,60 +206,46 @@ def get_routes_and_process(chunk_df, domains, domain_type, start_date, end_date,
         reach_predictions = []
         depart_from_client_predictions = []
 
-        for event in domains:
-            if event == 'depart' or event == 'depart_from_merchant' or event == 'depart_from_courier_warehouse':
-                if domain_type in (2, 6):
-                    chunk_df = chunk_df[chunk_df.domaintypes.isin([1, 3])]
-                    for domain in ['depart_from_merchant', 'depart_from_courier_warehouse']:
-                        processed_depart_orders = depart_main(chunk_df, domain_type, domain, merged_df, start_time,
-                                                              last_chunk)
-                        total_processed_routes_for_depart += (processed_depart_orders or 0)
-                else:
-                    processed_depart_orders = depart_main(chunk_df, domain_type, '', merged_df, start_time, last_chunk)
+        if 'depart' in domains:
+            if domain_type in (2, 6):
+                chunk_df = chunk_df[chunk_df.domaintypes.isin([1, 3])]
+                for domain in ['depart_from_merchant', 'depart_from_courier_warehouse']:
+                    processed_depart_orders = depart_main(chunk_df, domain_type, domain, merged_df, start_time, last_chunk)
                     total_processed_routes_for_depart += (processed_depart_orders or 0)
-                print("Total Processed Routes for domain type {} Depart: {}".format(domain_type,
-                                                                                    total_processed_routes_for_depart))
+            else:
+                processed_depart_orders = depart_main(chunk_df, domain_type, '', merged_df, start_time, last_chunk)
+                total_processed_routes_for_depart += (processed_depart_orders or 0)
+            print("Total Processed Routes for domain type {} Depart: {}".format(domain_type,
+                                                                                total_processed_routes_for_depart))
 
-            elif event == 'depart_new':
-                if domain_type == 1:
-                    c = depart_from_warehouse_new_model(chunk_df, domain_type, '', merged_df, start_time, last_chunk)
-                    t += (c or 0)
-                    print("Total Processed Routes for domain type {} New Depart Model: {}".format(domain_type,
-                                                                                                  t))
+        if 'reach' in domains and domain_type not in (2, 6):
+            processed_reach_orders = reach_main(chunk_df, domain_type, merged_df, start_time, last_chunk).get('routes')
+            total_processed_routes_for_reach += processed_reach_orders
+            reach_predictions = reach_main(chunk_df, domain_type, merged_df, start_time, last_chunk).get('preds')
+            orders = chunk_df[['_id_oid', 'deliver_location__coordinates_lon', 'deliver_location__coordinates_lat']]
+            reach_predictions = reach_predictions.merge(orders, left_on="_id_oid", right_on="_id_oid", how="inner")
+            print("Total Processed Routes For Reach : ", total_processed_routes_for_reach)
 
-            elif event == 'reach':
-                processed_reach_orders = reach_main(chunk_df, domain_type, merged_df, start_time, last_chunk).get('routes')
-                total_processed_routes_for_reach += processed_reach_orders
-                reach_predictions = reach_main(chunk_df, domain_type, merged_df, start_time, last_chunk).get('preds')
-                orders = chunk_df[['_id_oid', 'delivery_address_location__coordinates_lon',
-                                   'delivery_address_location__coordinates_lat']]
-                reach_predictions = reach_predictions.merge(orders, left_on="_id_oid", right_on="_id_oid", how="inner")
-                print("Total Processed Routes For Reach : ", total_processed_routes_for_reach)
+        if 'depart_from_client' in domains and domain_type not in (2, 6):
+            reach_predictions = reach_predictions[reach_predictions.time.notna()][['_id_oid', 'time', 'time_l']]. \
+                rename(columns={'time': 'predicted_reach_date'}).copy()
+            depart_from_client_dict = depart_from_client_main(chunk_df, routes_df, reach_predictions,
+                                                              domain_type, merged_df, start_time, last_chunk)
+            processed_depart_from_client_orders = depart_from_client_dict.get('routes')
+            total_processed_routes_for_depart_from_client += processed_depart_from_client_orders
+            print("Total Processed Routes for Depart from Client: ", total_processed_routes_for_depart_from_client)
+            depart_from_client_predictions = depart_from_client_dict.get('preds')
 
+        if 'deliver' in domains and domain_type not in (2, 6):
+            reach_predictions = reach_predictions.rename(columns={'predicted_reach_date': 'time'}).copy()
+            result_dict = deliver_main(reach_predictions, depart_from_client_predictions, domain_type, start_time, last_chunk)
+            total_processed_orders_for_delivery += result_dict.get('orders')
+            print("Total Processed Orders For Delivery : ", total_processed_orders_for_delivery)
 
-
-            elif event == 'depart_from_client' and domain_type not in (2, 6):
-                reach_predictions = reach_predictions[reach_predictions.time.notna()][['_id_oid', 'time', 'time_l']]. \
-                    rename(columns={'time': 'predicted_reach_date'}).copy()
-                depart_from_client_dict = depart_from_client_main(chunk_df, routes_df, reach_predictions,
-                                                                  domain_type, merged_df, start_time, last_chunk)
-                processed_depart_from_client_orders = depart_from_client_dict.get('routes')
-                total_processed_routes_for_depart_from_client += processed_depart_from_client_orders
-                print("Total Processed Routes for Depart from Client: ", total_processed_routes_for_depart_from_client)
-                depart_from_client_predictions = depart_from_client_dict.get('preds')
-
-            elif event == 'deliver' and domain_type not in (2, 6):
-                reach_predictions = reach_predictions.rename(columns={'predicted_reach_date': 'time'}).copy()
-                result_dict = deliver_main(reach_predictions, depart_from_client_predictions, domain_type, start_time,
-                                           last_chunk)
-                total_processed_orders_for_delivery += result_dict.get('orders')
-                print("Total Processed Orders For Delivery : ", total_processed_orders_for_delivery)
-
-            elif event == 'reach_to_merchant' and domain_type in (2, 6):
-                processed_reach_to_merchant_orders = reach_to_merchant_main(chunk_df, domain_type, merged_df, start_time,
-                                                                            last_chunk)
-                total_processed_routes_for_reach_to_merchant += processed_reach_to_merchant_orders
-                print("Total Processed Routes For Reach To Merchant : ", total_processed_routes_for_reach_to_merchant)
+        if 'reach_to_merchant' in domains and domain_type in (2, 6):
+            processed_reach_to_merchant_orders = reach_to_merchant_main(chunk_df, domain_type, merged_df, start_time, last_chunk)
+            total_processed_routes_for_reach_to_merchant += processed_reach_to_merchant_orders
+            print("Total Processed Routes For Reach To Merchant : ", total_processed_routes_for_reach_to_merchant)
 
 
 def reach_main(chunk_df: pd.DataFrame, domain_type: int, merged_df: pd.DataFrame, start_time: str, last_chunk: bool):
@@ -346,25 +329,21 @@ def reach_to_merchant_main(chunk_df: pd.DataFrame, domain_type, merged_df: pd.Da
     return chunk_df['delivery_route_oid'].nunique()
 
 
-def depart_main(chunk_df: pd.DataFrame, domain_type: int, domain: str, merged_df: pd.DataFrame, start_time: str,
-                last_chunk: bool):
-    print('Domain Type: ', domain_type)
+def depart_main(chunk_df: pd.DataFrame, domain_type: int, domain: str, merged_df: pd.DataFrame, start_time: str, last_chunk: bool):
+    order_ids = pd.DataFrame(chunk_df['_id_oid'], columns=['_id_oid'])
     processed_data = DepartDataProcessor(
         minimum_location_limit=config.MINIMUM_LOCATION_LIMIT,
         domain=domain,
         merged_df=merged_df).process()
     print('Depart data processed!')
-
     single_predictor = DepartLogisticReachSinglePredictor(config.DEPART_INTERCEPT, config.DEPART_COEFFICIENTS)
     bulk_predictor = DepartBulkPredictor(processed_data, single_predictor, config.MAX_DISTANCE_FOR_DEPART_PREDICTION,
                                          chunk_df, domain_type)
     predictions = bulk_predictor.predict_in_bulk()
 
     if predictions is not None and len(predictions) > 0:
-        order_ids = pd.DataFrame(chunk_df['_id_oid'], columns=['_id_oid'])
         predictions = order_ids.merge(predictions, on='_id_oid', how='left')
-        print('Columns: ', predictions.columns)
-        print('Depart data predicted for: ', domain_type.__str__() + '_' + domain)
+        print('Depart data predicted!')
         # 'depart_from_merchant', 'depart_from_courier_warehouse'
         if domain_type == 2:
             if domain == 'depart_from_merchant':
@@ -395,43 +374,8 @@ def depart_main(chunk_df: pd.DataFrame, domain_type: int, domain: str, merged_df
 
         if last_chunk:
             writer.copy_to_redshift()
-            print('Depart data predictions written!')
-
-    return chunk_df['delivery_route_oid'].nunique()
-
-
-def depart_from_warehouse_new_model(chunk_df: pd.DataFrame, domain_type: int, domain: str, merged_df: pd.DataFrame,
-                                    start_time: str, last_chunk: bool):
-
-    processed_data = DepartDataProcessor(
-        minimum_location_limit=config.MINIMUM_LOCATION_LIMIT,
-        domain=domain,
-        merged_df=merged_df).process()
-    print('Depart data processed!')
-
-    if len(processed_data):
-        processed_data['is_car'] = processed_data.apply(lambda x: 1 if x['vehicle_type'] == 6 else 0, axis=1)
-        new_model_predictor = NewDepartModelPredictor(processed_data, config.MAX_DISTANCE_FOR_DEPART_PREDICTION,
-                                                      chunk_df, domain_type)
-        new_model_predictions = new_model_predictor.predict()
-        if new_model_predictions is not None and len(new_model_predictions) > 0:
-            order_ids = pd.DataFrame(chunk_df['_id_oid'], columns=['_id_oid'])
-            predictions = order_ids.merge(new_model_predictions, on='_id_oid', how='left')
-            predictions['domain_type'] = domain_type
-            predictions = predictions[['_id_oid', 'domain_type', 'time', 'time_l', 'lat', 'lon']]
-            print('New Model Depart data predicted for: ', domain_type.__str__() + '_' + str(domain_type))
-
-            TABLE_NAME = config.DEPART_FROM_WAREHOUSE_NEW_MODEL_TABLE_NAME
-            TABLE_COLUMNS = config.DEPART_FROM_WAREHOUSE_NEW_MODEL_TABLE_COLUMNS
-
-            writer = Writer(predictions, WRITE_ENGINE, TABLE_NAME, config.SCHEMA_NAME, TABLE_COLUMNS, start_time)
-            writer.write()
-
-            if last_chunk:
-                writer.copy_to_redshift()
-                print('Depart data new model predictions written!')
-
-            return chunk_df['delivery_route_oid'].nunique()
+        print('Depart data predictions written!')
+        return chunk_df['delivery_route_oid'].nunique()
 
 
 def depart_from_client_main(chunk_df: pd.DataFrame, routes_df: pd.DataFrame, reach_predictions_df: pd.DataFrame,

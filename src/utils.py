@@ -266,7 +266,6 @@ def get_run_params():
                             help="End Date of the time interval of the cron")
 
     parsed = parser.parse_args()
-    print('domainn: ', parsed.domain)
     assert parsed.domain in config.DOMAIN_LIST, 'Domain must be one of ' + str(config.DOMAIN_LIST)
 
     return parsed

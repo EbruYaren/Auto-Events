@@ -79,8 +79,12 @@ class ReachDataProcessor(DataProcessor):
             return np.nan
 
     def haversine_apply(self, row):
-        source_lon = 'delivery_address_location__coordinates_lon'
-        source_lat = 'delivery_address_location__coordinates_lat'
+        if self.domain_type in (2, 6):
+            source_lon = 'deliveryaddress_location__coordinates_lon'
+            source_lat = 'deliveryaddress_location__coordinates_lat'
+        else:
+            source_lon = 'delivery_address_location__coordinates_lon'
+            source_lat = 'delivery_address_location__coordinates_lat'
         dist = self.haversine(row['lon'], row['lat'],
                               row[source_lon],
                               row[source_lat])
