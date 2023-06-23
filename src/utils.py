@@ -249,6 +249,7 @@ def get_run_params():
     parser.add_argument("-ed", "--end_date", default=str(now),
                         help="End Date of the time interval of the cron")
     parser.add_argument('-d', '--domain', default=config.DEFAULT_DOMAIN)
+    parser.add_argument('-p', '--param', default=False)
     print('Start Hour: ', start.hour)
     if start.hour == 3:
         type = config.WITH_PERIOD_TYPE

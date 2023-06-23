@@ -24,13 +24,17 @@ def main():
         start_date = '2022-04-19 13:30:00'
         end_date = '2022-04-19 13:32:00'
         domain = config.DEFAULT_DOMAIN
+        param = False
         courier_ids = []  # config.COURIER_IDS
     else:
         params = get_run_params()
         start_date = params.start_date
         end_date = params.end_date
         domain = params.domain
+        param = params.param
         courier_ids = []
+
+    print(param)
 
     domains = domain.split(',')
 
@@ -39,7 +43,7 @@ def main():
 
     for pair in get_date_pairs(start_date, end_date):
         start, end = pair
-        run(start, end, domains, courier_ids)
+        run(start, end, domains, courier_ids, param)
 
     with WRITE_ENGINE.begin() as connection:
         remove_duplicates(connection, config.REACH_TABLE_NAME, 'prediction_id', ['order_id'], config.SCHEMA_NAME)
@@ -88,7 +92,7 @@ def create_auto_table(CREATE_TABLE_QUERY: str, CREATE_TABLE_NAME: str, name: str
         print("{} Table created", name)
 
 
-def run(start_date: str, end_date: str, domains: list, courier_ids: list):
+def run(start_date: str, end_date: str, domains: list, courier_ids: list, param: bool):
     print("Start date:", start_date)
     print("End date:", end_date)
     print("Domains:", domains)
@@ -156,7 +160,7 @@ def run(start_date: str, end_date: str, domains: list, courier_ids: list):
     domain_types = [1, 2, 4, 6]
     for domain_type in domain_types:
         threads[domain_type] = Thread(target=fetch_orders_and_process,
-                                      args=[start_date, end_date, start_time, courier_ids, domains, domain_type])
+                                      args=[start_date, end_date, start_time, courier_ids, domains, domain_type, param])
 
     for domain_type in domain_types:
         threads[domain_type].start()
@@ -165,7 +169,7 @@ def run(start_date: str, end_date: str, domains: list, courier_ids: list):
         threads[domain_type].join()
 
 
-def fetch_orders_and_process(start_date, end_date, start_time, courier_ids: [], domains, domain_type: int):
+def fetch_orders_and_process(start_date, end_date, start_time, courier_ids: [], domains, domain_type: int, param: bool):
     orders = Order(start_date, end_date, REDSHIFT_ETL, courier_ids, chunk_size=config.chunk_size, domains=domains,
                    domain_type=domain_type)
 
@@ -178,12 +182,12 @@ def fetch_orders_and_process(start_date, end_date, start_time, courier_ids: [], 
         order_index += 1
         if order_index == (orders_len // chunk_size):
             last_chunk = True
-        get_routes_and_process(chunk_df, domains, domain_type, start_date, end_date, start_time, last_chunk)
+        get_routes_and_process(chunk_df, domains, domain_type, start_date, end_date, start_time, last_chunk, param)
     if orders_len > 0:
         print('Market Orders fetched!')
 
 
-def get_routes_and_process(chunk_df, domains, domain_type, start_date, end_date, start_time, last_chunk):
+def get_routes_and_process(chunk_df, domains, domain_type, start_date, end_date, start_time, last_chunk, param: bool):
     total_processed_routes_for_reach = 0
     total_processed_routes_for_depart = 0
     total_processed_routes_for_depart_from_client = 0
@@ -210,18 +214,19 @@ def get_routes_and_process(chunk_df, domains, domain_type, start_date, end_date,
             if domain_type in (2, 6):
                 chunk_df = chunk_df[chunk_df.domaintypes.isin([1, 3])]
                 for domain in ['depart_from_merchant', 'depart_from_courier_warehouse']:
-                    processed_depart_orders = depart_main(chunk_df, domain_type, domain, merged_df, start_time, last_chunk)
+                    processed_depart_orders = depart_main(chunk_df, domain_type, domain, merged_df, start_time,
+                                                          last_chunk, param)
                     total_processed_routes_for_depart += (processed_depart_orders or 0)
             else:
-                processed_depart_orders = depart_main(chunk_df, domain_type, '', merged_df, start_time, last_chunk)
+                processed_depart_orders = depart_main(chunk_df, domain_type, '', merged_df, start_time, last_chunk, param)
                 total_processed_routes_for_depart += (processed_depart_orders or 0)
             print("Total Processed Routes for domain type {} Depart: {}".format(domain_type,
                                                                                 total_processed_routes_for_depart))
 
         if 'reach' in domains and domain_type not in (2, 6):
-            processed_reach_orders = reach_main(chunk_df, domain_type, merged_df, start_time, last_chunk).get('routes')
+            processed_reach_orders = reach_main(chunk_df, domain_type, merged_df, start_time, last_chunk, param).get('routes')
             total_processed_routes_for_reach += processed_reach_orders
-            reach_predictions = reach_main(chunk_df, domain_type, merged_df, start_time, last_chunk).get('preds')
+            reach_predictions = reach_main(chunk_df, domain_type, merged_df, start_time, last_chunk, param).get('preds')
             orders = chunk_df[['_id_oid', 'deliver_location__coordinates_lon', 'deliver_location__coordinates_lat']]
             reach_predictions = reach_predictions.merge(orders, left_on="_id_oid", right_on="_id_oid", how="inner")
             print("Total Processed Routes For Reach : ", total_processed_routes_for_reach)
@@ -230,7 +235,7 @@ def get_routes_and_process(chunk_df, domains, domain_type, start_date, end_date,
             reach_predictions = reach_predictions[reach_predictions.time.notna()][['_id_oid', 'time', 'time_l']]. \
                 rename(columns={'time': 'predicted_reach_date'}).copy()
             depart_from_client_dict = depart_from_client_main(chunk_df, routes_df, reach_predictions,
-                                                              domain_type, merged_df, start_time, last_chunk)
+                                                              domain_type, merged_df, start_time, last_chunk, param)
             processed_depart_from_client_orders = depart_from_client_dict.get('routes')
             total_processed_routes_for_depart_from_client += processed_depart_from_client_orders
             print("Total Processed Routes for Depart from Client: ", total_processed_routes_for_depart_from_client)
@@ -238,17 +243,17 @@ def get_routes_and_process(chunk_df, domains, domain_type, start_date, end_date,
 
         if 'deliver' in domains and domain_type not in (2, 6):
             reach_predictions = reach_predictions.rename(columns={'predicted_reach_date': 'time'}).copy()
-            result_dict = deliver_main(reach_predictions, depart_from_client_predictions, domain_type, start_time, last_chunk)
+            result_dict = deliver_main(reach_predictions, depart_from_client_predictions, domain_type, start_time, last_chunk, param)
             total_processed_orders_for_delivery += result_dict.get('orders')
             print("Total Processed Orders For Delivery : ", total_processed_orders_for_delivery)
 
         if 'reach_to_merchant' in domains and domain_type in (2, 6):
-            processed_reach_to_merchant_orders = reach_to_merchant_main(chunk_df, domain_type, merged_df, start_time, last_chunk)
+            processed_reach_to_merchant_orders = reach_to_merchant_main(chunk_df, domain_type, merged_df, start_time, last_chunk, param)
             total_processed_routes_for_reach_to_merchant += processed_reach_to_merchant_orders
             print("Total Processed Routes For Reach To Merchant : ", total_processed_routes_for_reach_to_merchant)
 
 
-def reach_main(chunk_df: pd.DataFrame, domain_type: int, merged_df: pd.DataFrame, start_time: str, last_chunk: bool):
+def reach_main(chunk_df: pd.DataFrame, domain_type: int, merged_df: pd.DataFrame, start_time: str, last_chunk: bool, param: bool):
     order_ids = pd.DataFrame(chunk_df['_id_oid'], columns=['_id_oid'])
     processed_data = ReachDataProcessor(minimum_location_limit=config.MINIMUM_LOCATION_LIMIT,
                                         fibonacci_base=config.FIBONACCI_BASE,
@@ -265,22 +270,27 @@ def reach_main(chunk_df: pd.DataFrame, domain_type: int, merged_df: pd.DataFrame
         writer = Writer(predictions, WRITE_ENGINE, config.REACH_TABLE_NAME, config.SCHEMA_NAME,
                         config.REACH_TABLE_COLUMNS, start_time)
         writer.write()
-        if last_chunk:
+        if last_chunk == True and param == False:
             writer.copy_to_redshift()
     elif domain_type == 2:
         writer = Writer(predictions, WRITE_ENGINE, config.FOOD_REACH_TO_CLIENT_TABLE, config.SCHEMA_NAME,
                         config.FOOD_REACH_TO_CLIENT_TABLE_COLUMNS, start_time)
         writer.write()
+        if last_chunk == True and param == False:
+            writer.copy_to_redshift()
     elif domain_type == 6:
         writer = Writer(predictions, WRITE_ENGINE, config.ARTISAN_REACH_TO_CLIENT_TABLE, config.SCHEMA_NAME,
                         config.ARTISAN_REACH_TO_CLIENT_TABLE_COLUMNS, start_time)
         writer.write()
+        if last_chunk == True and param == False:
+            writer.copy_to_redshift()
     else:
         writer_water = Writer(predictions, WRITE_ENGINE, config.WATER_REACH_TABLE_NAME, config.SCHEMA_NAME,
                               config.WATER_REACH_TABLE_COLUMNS, start_time)
         writer_water.write()
-        if last_chunk:
+        if last_chunk == True and param == False:
             writer_water.copy_to_redshift()
+
 
 
 
@@ -293,7 +303,7 @@ def reach_main(chunk_df: pd.DataFrame, domain_type: int, merged_df: pd.DataFrame
     return dict
 
 
-def reach_to_merchant_main(chunk_df: pd.DataFrame, domain_type, merged_df: pd.DataFrame, start_time: str, last_chunk: bool):
+def reach_to_merchant_main(chunk_df: pd.DataFrame, domain_type, merged_df: pd.DataFrame, start_time: str, last_chunk: bool, param: bool):
     print('Length:', len(chunk_df), 'NA column counts:', chunk_df.isna().sum()[chunk_df.isna().sum().gt(0)].to_dict())
     order_ids = pd.DataFrame(chunk_df['_id_oid'], columns=['_id_oid'])
     processed_data = ReachToMerchantDataProcessor(
@@ -323,13 +333,13 @@ def reach_to_merchant_main(chunk_df: pd.DataFrame, domain_type, merged_df: pd.Da
                     table_columns, start_time)
     writer.write()
 
-    if last_chunk:
+    if last_chunk == True and param == False:
         writer.copy_to_redshift()
 
     return chunk_df['delivery_route_oid'].nunique()
 
 
-def depart_main(chunk_df: pd.DataFrame, domain_type: int, domain: str, merged_df: pd.DataFrame, start_time: str, last_chunk: bool):
+def depart_main(chunk_df: pd.DataFrame, domain_type: int, domain: str, merged_df: pd.DataFrame, start_time: str, last_chunk: bool, param: bool):
     order_ids = pd.DataFrame(chunk_df['_id_oid'], columns=['_id_oid'])
     processed_data = DepartDataProcessor(
         minimum_location_limit=config.MINIMUM_LOCATION_LIMIT,
@@ -372,14 +382,14 @@ def depart_main(chunk_df: pd.DataFrame, domain_type: int, domain: str, merged_df
         writer = Writer(predictions, WRITE_ENGINE, TABLE_NAME, config.SCHEMA_NAME, TABLE_COLUMNS, start_time)
         writer.write()
 
-        if last_chunk:
+        if last_chunk == True and param == False:
             writer.copy_to_redshift()
         print('Depart data predictions written!')
         return chunk_df['delivery_route_oid'].nunique()
 
 
 def depart_from_client_main(chunk_df: pd.DataFrame, routes_df: pd.DataFrame, reach_predictions_df: pd.DataFrame,
-                            domain_type: int, merged_df: pd.DataFrame, start_time: str, last_chunk: bool):
+                            domain_type: int, merged_df: pd.DataFrame, start_time: str, last_chunk: bool, param: bool):
     order_ids = pd.DataFrame(chunk_df['_id_oid'], columns=['_id_oid'])
     processed_data = DepartFromClientDataProcessor(
         orders=chunk_df, routes=routes_df,
@@ -399,13 +409,13 @@ def depart_from_client_main(chunk_df: pd.DataFrame, routes_df: pd.DataFrame, rea
         writer = Writer(predictions, WRITE_ENGINE, config.DEPART_FROM_CLIENT_TABLE_NAME, config.SCHEMA_NAME,
                         config.DEPART_FROM_CLIENT_TABLE_COLUMNS, start_time)
         writer.write()
-        if last_chunk:
+        if last_chunk == True and param == False:
             writer.copy_to_redshift()
     else:
         writer_water = Writer(predictions, WRITE_ENGINE, config.WATER_DEPART_FROM_CLIENT_TABLE_NAME, config.SCHEMA_NAME,
                               config.WATER_DEPART_FROM_CLIENT_TABLE_COLUMNS, start_time)
         writer_water.write()
-        if last_chunk:
+        if last_chunk == True and param == False:
             writer_water.copy_to_redshift()
     print('Depart from client data predictions written!')
     dict = {
@@ -416,7 +426,7 @@ def depart_from_client_main(chunk_df: pd.DataFrame, routes_df: pd.DataFrame, rea
     return dict
 
 
-def deliver_main(reach_df: pd.DataFrame, depart_from_client_df: pd.DataFrame, domain_type: int, start_time: str, last_chunk: bool):
+def deliver_main(reach_df: pd.DataFrame, depart_from_client_df: pd.DataFrame, domain_type: int, start_time: str, last_chunk: bool, param: bool):
     reach_df = reach_df[reach_df.time.notna()]
     depart_from_client_df = depart_from_client_df[depart_from_client_df.time.notna()]
     delivery_predictions = reach_df.merge(depart_from_client_df, on="_id_oid", how="inner")
@@ -433,13 +443,13 @@ def deliver_main(reach_df: pd.DataFrame, depart_from_client_df: pd.DataFrame, do
         writer = Writer(delivery_predictions, WRITE_ENGINE, config.DELIVERY_TABLE_NAME, config.SCHEMA_NAME,
                         config.DELIVERY_TABLE_COLUMNS, start_time)
         writer.write()
-        if last_chunk:
+        if last_chunk == True and param == False:
             writer.copy_to_redshift()
     else:
         writer_water = Writer(delivery_predictions, WRITE_ENGINE, config.WATER_DELIVERY_TABLE_NAME, config.SCHEMA_NAME,
                               config.WATER_DELIVERY_TABLE_COLUMNS, start_time)
         writer_water.write()
-        if last_chunk:
+        if last_chunk == True and param == False:
             writer_water.copy_to_redshift()
     print('Deliver data predictions written!')
     dict = {
