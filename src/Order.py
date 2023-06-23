@@ -22,10 +22,8 @@ class Order:
            z.time_zone,
            max(deliver_date) over (partition by delivery_job_oid) as max_deliver_date
         FROM etl_market_order.marketorders o
-        LEFT JOIN project_auto_events.{prediction_table} rdp ON rdp.order_id = o._id_oid
         LEFT JOIN market_analytics.country_time_zones AS z ON o.country_oid = z.country_id
         WHERE status in (900, 1000)
-        {null_filter}
         AND deliver_date BETWEEN '{start}' AND  '{end}'
         AND domaintype in (1,3)
         {courier_filter}
@@ -147,8 +145,8 @@ WHERE max_deliver_date between '{start_date}' AND  '{end_date}';
             null_filter = "AND rdp.predicted_depart_date isnull"
         else:
             # run for first time rows
-            prediction_table = 'depart_from_client_date_prediction'
-            null_filter = "AND (rdp.order_id isnull or rdp.predicted_depart_from_client_date is null)"
+            prediction_table = 'depart_from_date_prediction'
+            null_filter = "AND (rdp.order_id isnull or rdp.predicted_depart_date is null)"
 
         if len(self.__courier_ids) == 0:
             courier_filter = ''
@@ -162,8 +160,6 @@ WHERE max_deliver_date between '{start_date}' AND  '{end_date}';
             return self.QUERY_TEMPLATE.format(start_date=self.__start_date,
                                               end_date=self.__end_date,
                                               courier_filter=courier_filter,
-                                              prediction_table=prediction_table,
-                                              null_filter=null_filter,
                                               start=start,
                                               end=end)
 
